@@ -1,0 +1,40 @@
+.theme-switch {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  /* Above the figurewright hero, which comes after it in the page. */
+  z-index: 10;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.theme-switch-option {
+  padding: 0.2rem 0.7rem;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.8rem;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.theme-switch-option:hover {
+  color: var(--text);
+}
+
+.theme-switch-option[aria-checked='true'] {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.theme-switch-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

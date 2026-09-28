@@ -1,0 +1,72 @@
+/* Theme tokens. `data-theme` on <html> is the theme switch's choice
+   (src/shared/theme.ts); without it the system setting decides. The dark
+   values appear twice because plain CSS cannot share one block between a
+   media query and an attribute selector. */
+:root,
+:root[data-theme='light'] {
+  --bg: #faf6ee;
+  --surface: #ffffff;
+  --text: #1f1c19;
+  --muted: #5f5850;
+  --border: #e4ddd0;
+  --accent: #b4532a;
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #1a1816;
+  --surface: #24211e;
+  --text: #efe9df;
+  --muted: #b3aa9d;
+  --border: #3a3530;
+  --accent: #e8905f;
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #1a1816;
+    --surface: #24211e;
+    --text: #efe9df;
+    --muted: #b3aa9d;
+    --border: #3a3530;
+    --accent: #e8905f;
+
+    color-scheme: dark;
+  }
+}
+
+:root {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  color: var(--accent);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}

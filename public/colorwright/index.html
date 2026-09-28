@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Colorwright</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Colorwright</h1>
+    <p class="tagline">Click-to-equip Open Peeps avatar editor — every part is recolorable</p>
+  </header>
+
+  <p id="status" class="status" role="status" aria-live="polite"></p>
+
+  <main>
+    <section class="preview">
+      <div id="preview-figure" class="preview-figure"></div>
+
+      <div class="facing" role="group" aria-labelledby="facing-label">
+        <span id="facing-label" class="facing-label">Facing</span>
+        <div class="facing-options" data-facing></div>
+      </div>
+
+      <section class="looks">
+        <h2>Save this look</h2>
+        <form id="save-form">
+          <input type="text" id="look-name" placeholder="Name this look" required>
+          <button type="submit" id="save-button" disabled>Save</button>
+        </form>
+
+        <h2>Load a saved look</h2>
+        <ul id="saved-looks" class="saved-looks"></ul>
+      </section>
+    </section>
+
+    <section class="choices">
+      <div class="rows" data-rows></div>
+
+      <div class="slot-group colors" data-color-pickers-section hidden>
+        <h2>Colors</h2>
+        <p class="slot-hint">Skin first, then grouped by part, for whichever parts are currently equipped.</p>
+        <div class="color-pickers" data-color-pickers></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-notice">
+    <p>Built on <a href="https://www.openpeeps.com/">Open Peeps</a>' CC0 line art. Unofficial: not affiliated with or endorsed by Pablo Stanley or Open Peeps.</p>
+    <p data-static-notice hidden>Looks are saved in this browser only.</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="logic.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

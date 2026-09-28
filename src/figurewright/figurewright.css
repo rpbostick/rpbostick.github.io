@@ -1,0 +1,319 @@
+.hero {
+  --strip-height: 72px;
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  /* The top padding clears the tags and the theme switch; the bottom padding
+     clears the strip and the hint above it, so neither covers the lineup. */
+  padding: 5.25rem 1.25rem calc(var(--strip-height) + 3.5rem);
+  overflow: hidden;
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.hero:focus {
+  outline: none;
+}
+
+.hero:focus-visible,
+.hero-active {
+  /* Subtle ring inside the edge, since the hero fills the viewport. */
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.hero-active {
+  cursor: ns-resize;
+}
+
+/* While active a finger drag reshapes the waves instead of scrolling. Set on
+   the parts rather than the hero, which would also stop the strip scrolling
+   (touch-action applies to everything inside); inactive, swipes scroll. */
+.hero-active .waves,
+.hero-active .hero-content,
+.hero-active .hero-tags {
+  touch-action: none;
+}
+
+.hero-dragging {
+  cursor: grabbing;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Waves.css draws a dot that follows the mouse or a touch drag; until the
+   first move it sits in the top-left corner as a stray mark, so hide it. */
+.hero .waves::before {
+  display: none;
+}
+
+.hero-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 72rem;
+}
+
+.lineup {
+  width: 100%;
+  /* The easing lineup is nearer 2:1 than the old standing row (2.35:1), so a
+     narrower cap keeps the panel about as tall as before. */
+  max-width: 60rem;
+  padding: clamp(0.75rem, 3vw, 2rem);
+  border-radius: 24px;
+  /* Translucent paper around the figures so the waves show faintly through.
+     Paper in both themes: the figures are drawn in black ink. */
+  background: color-mix(in srgb, #faf6ee 50%, transparent);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+:root[data-theme='dark'] .lineup {
+  background: color-mix(in srgb, #faf6ee 62%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .lineup {
+    background: color-mix(in srgb, #faf6ee 62%, transparent);
+  }
+}
+
+.lineup img {
+  width: 100%;
+}
+
+.hero-tag,
+.hero-hint {
+  margin: 0;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  color: var(--text);
+}
+
+/* Top left, across from the theme switch in the top right. */
+.hero-tags {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.hero-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pattern-icon {
+  width: 0.8rem;
+  text-align: center;
+  line-height: 1;
+}
+
+.colour-swatch {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+}
+
+.hero-hint {
+  position: absolute;
+  bottom: calc(var(--strip-height) + 0.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 1.5rem);
+  text-align: center;
+  color: var(--muted);
+}
+
+.hero-strip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--strip-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--bg) 70%, transparent));
+  /* Over the strip the wheel scrolls the page, even while the hero is active. */
+  cursor: default;
+}
+
+.hero-strip-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.9rem;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.hero-strip-button:hover {
+  border-color: var(--accent);
+}
+
+.hero-strip-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.hero-strip-arrow {
+  display: inline-block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-strip-arrow {
+    animation: hero-strip-bob 2s ease-in-out infinite;
+  }
+}
+
+@keyframes hero-strip-bob {
+  0%,
+  100% {
+    transform: translateY(-1px);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+.hero-text {
+  position: relative;
+  max-width: 40rem;
+  padding: 1.5rem 2.25rem;
+  text-align: center;
+  border-radius: 16px;
+  /* Paper-coloured panel so the text stays readable over the lines. */
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.hero h1 {
+  margin: 0 0 1rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.75rem, 11vw, 5.5rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.tagline {
+  margin: 0 0 1.25rem;
+  font-size: clamp(1.1rem, 3.5vw, 1.35rem);
+}
+
+.status {
+  display: inline-block;
+  margin: 0;
+  padding: 0.3rem 0.85rem;
+  border: 1.5px solid var(--text);
+  border-radius: 999px;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.showcases {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 4rem 1.25rem 1rem;
+}
+
+.showcase {
+  margin-bottom: 4rem;
+}
+
+.showcase h2 {
+  margin: 0 0 0.4rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+}
+
+.showcase p {
+  margin: 0 0 1.25rem;
+  max-width: 42rem;
+  color: var(--muted);
+}
+
+.showcase img {
+  width: 100%;
+  /* The renders are drawn on white; keep them on white in dark mode too. */
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.process h2 {
+  margin: 0 0 0.4rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.75rem, 6vw, 2.4rem);
+}
+
+.process h3 {
+  margin: 0 0 0.4rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.25rem, 4vw, 1.6rem);
+}
+
+.process p {
+  margin: 0 0 1.25rem;
+  max-width: 42rem;
+  color: var(--muted);
+}
+
+.chapter {
+  margin: 2.5rem 0 4rem;
+}
+
+.chapter a {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.chapter img {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Drawn on white; a light card in both themes so they neither glare nor
+     lose their white edges against the dark page. */
+  padding: 0.5rem;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.chapter a:focus-visible img,
+.chapter a:hover img {
+  border-color: var(--accent);
+}
+
+.credits {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.credits p {
+  margin: 0 0 0.5rem;
+}
