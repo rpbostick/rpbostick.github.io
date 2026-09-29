@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react'
 import Waves from '../reactbits/Waves/Waves.tsx'
+import { useAnimations } from '../shared/motion.ts'
 import { useTheme } from '../shared/theme.ts'
 import { useMediaQuery } from '../shared/useMediaQuery.ts'
+import { usePageVisible } from '../shared/usePageVisible.ts'
 import { ColourDrive, wheelTicks } from './colourDrive.ts'
 import { activeAfterPress, clickActivates, isDrag, MIDDLE_BUTTON, startsDrag } from './heroInput.ts'
 import { colourAt, heroBackgrounds, nearestStopIndex, stopsByTheme } from './palette.ts'
 import { dominantAxis, dragDelta, motionAt, PatternDrive, patternLabel, type Axis } from './patternDrive.ts'
 
-const SPLASH = { src: '/figurewright/splash-easing.svg', width: 1377, height: 764 }
+const SPLASH = { src: '/figurewright/splash-easing.svg', width: 1355, height: 764 }
 
 // The page has one hero, so one of each drive; they live outside React
 // because the Waves draw loop, not rendering, advances them.
@@ -30,7 +32,9 @@ interface Drag {
 }
 
 export default function Hero() {
-  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
+  // The Animations toggle, which starts from prefers-reduced-motion.
+  const reducedMotion = !useAnimations()
+  const pageVisible = usePageVisible()
   const coarsePointer = useMediaQuery('(pointer: coarse)')
   const theme = useTheme()
   const stops = stopsByTheme[theme]
@@ -258,6 +262,10 @@ export default function Hero() {
         lineColor={lineColour}
         motion={waveMotion}
         backgroundColor={heroBackgrounds[theme]}
+        // With animations off the waves hold still, except while someone is
+        // playing with the hero: stepped colours and dragged patterns land
+        // instantly then, but the frames still have to be drawn.
+        paused={!pageVisible || (reducedMotion && !active)}
         xGap={12}
         yGap={36}
       />
