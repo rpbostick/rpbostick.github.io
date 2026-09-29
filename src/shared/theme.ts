@@ -61,7 +61,7 @@ export function useThemeChoice(): ThemeChoice {
 }
 
 // The theme in effect: the choice, or the system's under System. Everything
-// that draws in theme colours from script reads this, not the media query.
+// that draws in theme colors from script reads this, not the media query.
 export function useTheme(): Theme {
   return useSyncExternalStore(subscribe, currentTheme)
 }

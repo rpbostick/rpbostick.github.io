@@ -16,8 +16,8 @@ export interface AuroraParams {
 }
 
 // Dark versions are drawn additively over the near-black page, so their
-// colours set the brightness; light versions go through the Aurora light
-// mode, which keeps only each colour's hue and saturation.
+// colors set the brightness; light versions go through the Aurora light
+// mode, which keeps only each color's hue and saturation.
 export const PRESETS: Record<Feel, Record<Theme, AuroraParams>> = {
   sunny: {
     light: { colorStops: ['#f6c945', '#7ec8f0', '#f2b53a'], amplitude: 1.0, blend: 0.5, speed: 0.6 },

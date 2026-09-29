@@ -1,7 +1,7 @@
 // Where the hero sits on a loop of wave patterns, as a real number: 0 is the
 // first preset, 1 the second, and PRESETS.length wraps back to the first.
 // Dragging through the waves moves it; a fast drag moves it further per pixel,
-// and on release it coasts to a stop. Time is passed in, as in colourDrive.ts,
+// and on release it coasts to a stop. Time is passed in, as in colorDrive.ts,
 // so a check script can drive it.
 
 // Waves' own motion parameters. The line gaps stay fixed: changing them means
@@ -101,7 +101,7 @@ function smoothstep(fraction: number): number {
   return fraction * fraction * (3 - 2 * fraction)
 }
 
-// Eased between neighbouring presets so each preset is a point the pattern
+// Eased between neighboring presets so each preset is a point the pattern
 // settles through rather than a corner it turns at.
 export function motionAt(position: number): WaveMotion {
   const wrapped = wrap(position)

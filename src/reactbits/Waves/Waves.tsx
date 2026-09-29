@@ -107,7 +107,7 @@ interface Mouse {
   set: boolean;
 }
 
-// A getter is called once per frame, so the colour can change without re-rendering.
+// A getter is called once per frame, so the color can change without re-rendering.
 type LineColor = string | (() => string);
 
 interface Config {

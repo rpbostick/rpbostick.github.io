@@ -1,11 +1,11 @@
-// Colour mixing in OKLab, so a cross-fade between two hues passes through a
-// clean in-between colour instead of the grey an sRGB mix gives.
+// Color mixing in OKLab, so a cross-fade between two hues passes through a
+// clean in-between color instead of the gray an sRGB mix gives.
 
 export type Rgb = [number, number, number]
 type Lab = [number, number, number]
 
 export function hexToRgb(hex: string): Rgb {
-  if (!/^#[0-9a-f]{6}$/i.test(hex)) throw new Error(`Not a #rrggbb colour: ${JSON.stringify(hex)}`)
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) throw new Error(`Not a #rrggbb color: ${JSON.stringify(hex)}`)
   return [1, 3, 5].map((offset) => parseInt(hex.slice(offset, offset + 2), 16) / 255) as Rgb
 }
 

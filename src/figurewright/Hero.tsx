@@ -4,16 +4,16 @@ import { useAnimations } from '../shared/motion.ts'
 import { useTheme } from '../shared/theme.ts'
 import { useMediaQuery } from '../shared/useMediaQuery.ts'
 import { usePageVisible } from '../shared/usePageVisible.ts'
-import { ColourDrive, wheelTicks } from './colourDrive.ts'
+import { ColorDrive, wheelTicks } from './colorDrive.ts'
 import { activeAfterPress, clickActivates, isDrag, MIDDLE_BUTTON, startsDrag } from './heroInput.ts'
-import { colourAt, heroBackgrounds, nearestStopIndex, stopsByTheme } from './palette.ts'
+import { colorAt, heroBackgrounds, nearestStopIndex, stopsByTheme } from './palette.ts'
 import { dominantAxis, dragDelta, motionAt, PatternDrive, patternLabel, type Axis } from './patternDrive.ts'
 
 const SPLASH = { src: '/figurewright/splash-easing.svg', width: 1355, height: 764 }
 
 // The page has one hero, so one of each drive; they live outside React
 // because the Waves draw loop, not rendering, advances them.
-const drive = new ColourDrive()
+const drive = new ColorDrive()
 const patternDrive = new PatternDrive()
 
 function onStrip(target: EventTarget | null): boolean {
@@ -66,14 +66,14 @@ export default function Hero() {
 
   // Called by Waves once per frame; the tag re-renders only when the nearest
   // stop changes.
-  const lineColour = useCallback(() => {
+  const lineColor = useCallback(() => {
     const position = drive.advance(performance.now())
     const index = nearestStopIndex(position)
     if (index !== shownIndexRef.current) {
       shownIndexRef.current = index
       setStopIndex(index)
     }
-    return colourAt(stopsRef.current, position)
+    return colorAt(stopsRef.current, position)
   }, [])
 
   // Also called by Waves once per frame. Reduced motion keeps the pattern's
@@ -237,10 +237,10 @@ export default function Hero() {
   const hint = active
     ? coarsePointer
       ? 'Drag to reshape the waves · tap outside to leave'
-      : 'Scroll to shift colours · drag to reshape the waves · middle-click or Esc to leave'
+      : 'Scroll to shift colors · drag to reshape the waves · middle-click or Esc to leave'
     : coarsePointer
-      ? 'Tap to play with the colours'
-      : 'Click or middle-click to play with the colours'
+      ? 'Tap to play with the colors'
+      : 'Click or middle-click to play with the colors'
 
   return (
     <header
@@ -248,7 +248,7 @@ export default function Hero() {
       className={['hero', active && 'hero-active', dragging && 'hero-dragging'].filter(Boolean).join(' ')}
       tabIndex={0}
       role="group"
-      aria-label="figurewright, with an interactive colour background"
+      aria-label="figurewright, with an interactive color background"
       aria-describedby="hero-hint"
       onClick={(event) => {
         if (clickActivates(onStrip(event.target), draggedRef.current)) setActive(true)
@@ -259,11 +259,11 @@ export default function Hero() {
       }}
     >
       <Waves
-        lineColor={lineColour}
+        lineColor={lineColor}
         motion={waveMotion}
         backgroundColor={heroBackgrounds[theme]}
         // With animations off the waves hold still, except while someone is
-        // playing with the hero: stepped colours and dragged patterns land
+        // playing with the hero: stepped colors and dragged patterns land
         // instantly then, but the frames still have to be drawn.
         paused={!pageVisible || (reducedMotion && !active)}
         xGap={12}
@@ -289,8 +289,8 @@ export default function Hero() {
         </div>
       </div>
       <div className="hero-tags">
-        <p className="hero-tag colour-tag">
-          <span className="colour-swatch" style={{ background: stop.hex }} aria-hidden="true" />
+        <p className="hero-tag color-tag">
+          <span className="color-swatch" style={{ background: stop.hex }} aria-hidden="true" />
           {stop.label} · {stop.name}
         </p>
         <p className="hero-tag pattern-tag">

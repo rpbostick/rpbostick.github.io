@@ -32,7 +32,7 @@ const projects: Project[] = [
   {
     title: 'colorwright',
     description:
-      'An Open Peeps avatar editor: swap and recolour hand-drawn parts head to toe. Looks are saved in your browser.',
+      'An Open Peeps avatar editor: swap and recolor hand-drawn parts head to toe. Looks are saved in your browser.',
     href: '/colorwright/',
     image: {
       src: '/colorwright/card.webp',
@@ -85,7 +85,7 @@ export default function IndexPage() {
         ))}
       </ul>
       <footer className="index-footer">
-        <a href="/THIRD_PARTY_LICENSES.txt">Third-party licences</a>
+        <a href="/THIRD_PARTY_LICENSES.txt">Third-party licenses</a>
       </footer>
     </main>
   )

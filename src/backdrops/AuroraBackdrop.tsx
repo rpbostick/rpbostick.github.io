@@ -19,7 +19,7 @@ export default function AuroraBackdrop() {
   }, [animations])
 
   // A new getter per theme: Aurora reads its props during render, so the
-  // frame it draws for a theme change already has the new colours.
+  // frame it draws for a theme change already has the new colors.
   const params = useCallback(() => weatherParams(theme), [theme])
 
   return (

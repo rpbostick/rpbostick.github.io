@@ -5,10 +5,10 @@ Copied from React Bits (https://github.com/DavidHDev/react-bits, https://reactbi
 Changes from the original:
 
 1. `Waves.css`: the `::before` transform read `var(-0.5rem)` and `var(50%)`, which are invalid CSS and fail Vite's CSS minifier; they now read `var(--x, -0.5rem)` and `var(--y, 50%)`, the custom properties `Waves.tsx` sets.
-2. `Waves.tsx`: `lineColor` also accepts a function, called once per frame in `drawLines`, so the colour can change continuously without re-rendering or re-initialising the waves.
+2. `Waves.tsx`: `lineColor` also accepts a function, called once per frame in `drawLines`, so the color can change continuously without re-rendering or re-initializing the waves.
 3. `Waves.tsx`: an `IntersectionObserver` on the container starts the animation loop and the `mousemove`/`touchmove` listeners when the waves are on screen and stops them when they are not. The `resize` listener stays attached throughout.
 4. `Waves.tsx`: `updateMouse` reads the container's `getBoundingClientRect()` on each move instead of the `left`/`top` cached on resize, which went stale once the page scrolled and put the ripples off the pointer.
-5. `Waves.tsx`: a `motion` prop, a getter called once per frame in `movePoints`, whose `waveSpeedX`, `waveSpeedY`, `waveAmpX`, `waveAmpY`, `friction`, `tension` and `maxCursorMove` override the matching props, so the pattern can change continuously without re-rendering or re-initialising the waves.
+5. `Waves.tsx`: a `motion` prop, a getter called once per frame in `movePoints`, whose `waveSpeedX`, `waveSpeedY`, `waveAmpX`, `waveAmpY`, `friction`, `tension` and `maxCursorMove` override the matching props, so the pattern can change continuously without re-rendering or re-initializing the waves.
 6. `Waves.tsx`: the noise offset is accumulated each frame (frame time × speed, with a frame counted as at most 100 ms) instead of computed as `time * waveSpeedX` and `time * waveSpeedY`, so changing the speed changes how fast the pattern flows rather than jumping it elsewhere in the noise.
 7. `Waves.tsx`: a `paused` prop. While it is true, the loop draws one more frame and stops; every re-render and every resize draws one frame, and turning it off starts the loop again. The frame after a pause counts as the first, so the pattern does not jump.
 
@@ -27,9 +27,9 @@ Changes from the original:
 1. The clock is accumulated each frame (a frame counted as at most 100 ms) instead of read from the `requestAnimationFrame` timestamp, so resuming after a pause continues where it stopped. The rate is the same.
 2. A `paused` prop, as in Waves 7: the loop draws one more frame and stops; every re-render and every resize draws one frame.
 
-## Licence
+## License
 
-The licence text below is React Bits' `LICENSE.md`, verbatim.
+The license text below is React Bits' `LICENSE.md`, verbatim.
 
 ---
 

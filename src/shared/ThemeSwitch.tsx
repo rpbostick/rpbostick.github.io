@@ -28,7 +28,7 @@ export default function ThemeSwitch({ className }: { className?: string }) {
   }
 
   return (
-    <div className={className ? `site-switch ${className}` : 'site-switch'} role="radiogroup" aria-label="Colour theme" onKeyDown={onKeyDown}>
+    <div className={className ? `site-switch ${className}` : 'site-switch'} role="radiogroup" aria-label="Color theme" onKeyDown={onKeyDown}>
       {OPTIONS.map((option, index) => {
         const checked = option.choice === choice
         return (

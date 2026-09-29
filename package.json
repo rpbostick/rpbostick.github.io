@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "check:palette": "node scripts/check-palette.ts",
-    "check:colour-drive": "node scripts/check-colour-drive.ts",
+    "check:color-drive": "node scripts/check-color-drive.ts",
     "check:hero-controls": "node scripts/check-hero-controls.ts",
     "check:backdrops": "node scripts/check-backdrops.ts",
     "test:unit": "node --test scripts/*.test.ts",

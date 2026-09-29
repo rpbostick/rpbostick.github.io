@@ -65,7 +65,7 @@ const chapters: Chapter[] = [
       },
       {
         src: '/figurewright/process/contours.webp',
-        alt: 'Six charts, neck and shoulders down to knee and ankle, with coloured outlines traced from Open Peeps figures over the black average, grey slim and dashed round profiles, and the traced figures below with the measured edges in red',
+        alt: 'Six charts, neck and shoulders down to knee and ankle, with colored outlines traced from Open Peeps figures over the black average, gray slim and dashed round profiles, and the traced figures below with the measured edges in red',
         width: 2400,
         height: 1153,
       },
@@ -73,17 +73,17 @@ const chapters: Chapter[] = [
   },
   {
     title: 'Real bodies',
-    text: 'Openly licensed photos of six women and four men were traced to numbers (grey) and set against Open Peeps garment outlines (colour) and the revised profiles (black); only the numbers are kept, no photos are stored. The builds run from slim to short and round, next to two Open Peeps figures at our head size.',
+    text: 'Openly licensed photos of six women and four men were traced to numbers (gray) and set against Open Peeps garment outlines (color) and the revised profiles (black); only the numbers are kept, no photos are stored. The builds run from slim to short and round, next to two Open Peeps figures at our head size.',
     images: [
       {
         src: '/figurewright/process/human-vs-peeps.webp',
-        alt: 'Two front-view charts, women and men: grey traced lines from photos, green and blue Open Peeps outlines, and black average, slim, round and pear profiles',
+        alt: 'Two front-view charts, women and men: gray traced lines from photos, green and blue Open Peeps outlines, and black average, slim, round and pear profiles',
         width: 1330,
         height: 1110,
       },
       {
         src: '/figurewright/process/builds.webp',
-        alt: 'Seven bare bodies labelled slim, average, athletic, round, pear, tall and slim, and short and round with their heights and settings, beside two dressed Open Peeps figures',
+        alt: 'Seven bare bodies labeled slim, average, athletic, round, pear, tall and slim, and short and round with their heights and settings, beside two dressed Open Peeps figures',
         width: 2400,
         height: 843,
       },
@@ -195,7 +195,7 @@ export default function FigurewrightPage() {
           Background animation: <a href="https://reactbits.dev/">React Bits</a> (reactbits.dev).
         </p>
         <p>
-          <a href="/THIRD_PARTY_LICENSES.txt">Third-party licences</a>
+          <a href="/THIRD_PARTY_LICENSES.txt">Third-party licenses</a>
         </p>
         <p>
           <a href="/">&larr; All demos</a>

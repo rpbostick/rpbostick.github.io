@@ -2,7 +2,7 @@ import type { Theme } from '../shared/theme.ts'
 
 // Each backdrop is drawn over the demo's own page background and under a wash
 // of that background, so its brightest and darkest pixels stay close to what
-// the demo's colours were chosen against. `npm run check:backdrops` confirms
+// the demo's colors were chosen against. `npm run check:backdrops` confirms
 // these values match the demos and that the wash keeps muted text readable.
 
 export type Demo = 'colorwright' | 'skywright'
@@ -34,8 +34,8 @@ export const WASH_OPACITY: Record<Demo, Record<Theme, number>> = {
   skywright: { light: 0.25, dark: 0.45 },
 }
 
-// Iridescence multiplies its pattern by this colour (0–1 per channel).
-export const IRIDESCENCE_COLOURS: Record<Theme, [number, number, number]> = {
+// Iridescence multiplies its pattern by this color (0–1 per channel).
+export const IRIDESCENCE_COLORS: Record<Theme, [number, number, number]> = {
   light: [1, 0.97, 0.93],
   dark: [0.42, 0.36, 0.5],
 }
