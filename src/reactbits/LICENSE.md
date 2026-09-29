@@ -1,4 +1,8 @@
-Copied from React Bits (https://github.com/DavidHDev/react-bits, https://reactbits.dev): `Waves/Waves.tsx` and `Waves/Waves.css` (from `src/ts-default/Backgrounds/Waves/`). Changes from the original:
+Copied from React Bits (https://github.com/DavidHDev/react-bits, https://reactbits.dev): `Waves/`, `Aurora/` and `Iridescence/`, each a `.tsx` and a `.css` from `src/ts-default/Backgrounds/<Name>/`. Aurora and Iridescence draw with [ogl](https://github.com/oframe/ogl) (Unlicense).
+
+## Waves
+
+Changes from the original:
 
 1. `Waves.css`: the `::before` transform read `var(-0.5rem)` and `var(50%)`, which are invalid CSS and fail Vite's CSS minifier; they now read `var(--x, -0.5rem)` and `var(--y, 50%)`, the custom properties `Waves.tsx` sets.
 2. `Waves.tsx`: `lineColor` also accepts a function, called once per frame in `drawLines`, so the colour can change continuously without re-rendering or re-initialising the waves.
@@ -6,6 +10,24 @@ Copied from React Bits (https://github.com/DavidHDev/react-bits, https://reactbi
 4. `Waves.tsx`: `updateMouse` reads the container's `getBoundingClientRect()` on each move instead of the `left`/`top` cached on resize, which went stale once the page scrolled and put the ripples off the pointer.
 5. `Waves.tsx`: a `motion` prop, a getter called once per frame in `movePoints`, whose `waveSpeedX`, `waveSpeedY`, `waveAmpX`, `waveAmpY`, `friction`, `tension` and `maxCursorMove` override the matching props, so the pattern can change continuously without re-rendering or re-initialising the waves.
 6. `Waves.tsx`: the noise offset is accumulated each frame (frame time × speed, with a frame counted as at most 100 ms) instead of computed as `time * waveSpeedX` and `time * waveSpeedY`, so changing the speed changes how fast the pattern flows rather than jumping it elsewhere in the noise.
+7. `Waves.tsx`: a `paused` prop. While it is true, the loop draws one more frame and stops; every re-render and every resize draws one frame, and turning it off starts the loop again. The frame after a pause counts as the first, so the pattern does not jump.
+
+## Aurora
+
+`Aurora.css` is unchanged. Changes to `Aurora.tsx`:
+
+1. A `params` prop, a getter called once per frame whose `colorStops`, `amplitude`, `blend` and `speed` override the matching props, so the aurora can change continuously without re-rendering.
+2. Without a `time` prop, the shader's clock is accumulated each frame (frame time × speed, with a frame counted as at most 100 ms) instead of computed as `t * 0.01 * speed * 0.1`, so a speed change or a pause does not jump the aurora elsewhere. The rate is the same.
+3. A `paused` prop, as in Waves 7: the loop draws one more frame and stops; every re-render and every resize draws one frame.
+
+## Iridescence
+
+`Iridescence.css` is unchanged. Changes to `Iridescence.tsx`:
+
+1. The clock is accumulated each frame (a frame counted as at most 100 ms) instead of read from the `requestAnimationFrame` timestamp, so resuming after a pause continues where it stopped. The rate is the same.
+2. A `paused` prop, as in Waves 7: the loop draws one more frame and stops; every re-render and every resize draws one frame.
+
+## Licence
 
 The licence text below is React Bits' `LICENSE.md`, verbatim.
 

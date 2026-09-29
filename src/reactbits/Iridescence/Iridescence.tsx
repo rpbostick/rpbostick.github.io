@@ -53,6 +53,8 @@ interface IridescenceProps {
   speed?: number;
   amplitude?: number;
   mouseReact?: boolean;
+  // Draws one more frame and stops the loop; every re-render draws one frame.
+  paused?: boolean;
 }
 
 export default function Iridescence({
@@ -60,10 +62,18 @@ export default function Iridescence({
   speed = 1.0,
   amplitude = 0.1,
   mouseReact = true,
+  paused = false,
   ...rest
 }: IridescenceProps) {
   const ctnDom = useRef<HTMLDivElement>(null);
   const mousePos = useRef({ x: 0.5, y: 0.5 });
+  const pausedRef = useRef(paused);
+  const requestFrameRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+    requestFrameRef.current?.();
+  });
 
   useEffect(() => {
     if (!ctnDom.current) return;
@@ -84,6 +94,8 @@ export default function Iridescence({
           gl.canvas.width / gl.canvas.height
         );
       }
+      // Resizing clears the canvas, which a paused loop would leave blank.
+      requestFrameRef.current?.();
     }
     window.addEventListener('resize', resize, false);
     resize();
@@ -105,14 +117,23 @@ export default function Iridescence({
     });
 
     const mesh = new Mesh(gl, { geometry, program });
-    let animateId: number;
+    let animateId: number | null = null;
+    // The clock is accumulated frame by frame (a frame counted as at most
+    // 100 ms), so resuming after a pause continues where it stopped.
+    const clock = { value: 0, last: null as number | null };
 
     function update(t: number) {
-      animateId = requestAnimationFrame(update);
-      program.uniforms.uTime.value = t * 0.001;
+      animateId = pausedRef.current ? null : requestAnimationFrame(update);
+      const frameMs = clock.last === null ? 0 : Math.min(100, Math.max(0, t - clock.last));
+      clock.last = pausedRef.current ? null : t;
+      clock.value += frameMs * 0.001;
+      program.uniforms.uTime.value = clock.value;
       renderer.render({ scene: mesh });
     }
-    animateId = requestAnimationFrame(update);
+    requestFrameRef.current = () => {
+      if (animateId === null) animateId = requestAnimationFrame(update);
+    };
+    requestFrameRef.current();
     ctn.appendChild(gl.canvas);
 
     function handleMouseMove(e: MouseEvent) {
@@ -128,7 +149,8 @@ export default function Iridescence({
     }
 
     return () => {
-      cancelAnimationFrame(animateId);
+      requestFrameRef.current = null;
+      if (animateId !== null) cancelAnimationFrame(animateId);
       window.removeEventListener('resize', resize);
       if (mouseReact) {
         ctn.removeEventListener('mousemove', handleMouseMove);

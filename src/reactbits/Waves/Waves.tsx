@@ -143,6 +143,8 @@ interface WavesProps {
   friction?: number;
   tension?: number;
   maxCursorMove?: number;
+  // Draws one more frame and stops the loop; every re-render draws one frame.
+  paused?: boolean;
   style?: CSSProperties;
   className?: string;
 }
@@ -160,6 +162,7 @@ const Waves: React.FC<WavesProps> = ({
   tension = 0.005,
   maxCursorMove = 100,
   motion,
+  paused = false,
   style = {},
   className = ''
 }) => {
@@ -205,10 +208,17 @@ const Waves: React.FC<WavesProps> = ({
   });
   const motionRef = useRef(motion);
   const frameIdRef = useRef<number | null>(null);
+  const pausedRef = useRef(paused);
+  const requestFrameRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     motionRef.current = motion;
   }, [motion]);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+    requestFrameRef.current?.();
+  });
 
   useEffect(() => {
     configRef.current = {
@@ -363,12 +373,16 @@ const Waves: React.FC<WavesProps> = ({
 
       movePoints(t);
       drawLines();
-      frameIdRef.current = requestAnimationFrame(tick);
+      frameIdRef.current = pausedRef.current ? null : requestAnimationFrame(tick);
+      // The next frame after a pause counts as the first, not as a long one.
+      if (pausedRef.current) phase.last = null;
     }
 
     function onResize() {
       setSize();
       setLines();
+      // Resizing clears the canvas, which a paused loop would leave blank.
+      requestFrameRef.current?.();
     }
     function onMouseMove(e: MouseEvent) {
       updateMouse(e.clientX, e.clientY);
@@ -396,6 +410,9 @@ const Waves: React.FC<WavesProps> = ({
 
     // Run the loop and pointer listeners only while the waves are on screen.
     let running = false;
+    requestFrameRef.current = () => {
+      if (running && frameIdRef.current === null) frameIdRef.current = requestAnimationFrame(tick);
+    };
     function start() {
       if (running) return;
       running = true;
@@ -424,6 +441,7 @@ const Waves: React.FC<WavesProps> = ({
     window.addEventListener('resize', onResize);
 
     return () => {
+      requestFrameRef.current = null;
       observer.disconnect();
       window.removeEventListener('resize', onResize);
       stop();

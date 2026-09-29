@@ -121,6 +121,8 @@ void main() {
 }
 `;
 
+type FrameParams = Partial<Pick<AuroraProps, 'colorStops' | 'amplitude' | 'blend' | 'speed'>>;
+
 interface AuroraProps {
   colorStops?: string[];
   amplitude?: number;
@@ -128,12 +130,22 @@ interface AuroraProps {
   time?: number;
   speed?: number;
   lightMode?: boolean;
+  // Called once per frame; what it returns overrides the matching props, so
+  // the aurora can change continuously without re-rendering.
+  params?: () => FrameParams;
+  // Draws one more frame and stops the loop; every re-render draws one frame.
+  paused?: boolean;
 }
 
 export default function Aurora(props: AuroraProps) {
   const { colorStops = ['#5227FF', '#7cff67', '#5227FF'], amplitude = 1.0, blend = 0.5, lightMode = false } = props;
   const propsRef = useRef<AuroraProps>(props);
   propsRef.current = props;
+  const requestFrameRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    requestFrameRef.current?.();
+  });
 
   const ctnDom = useRef<HTMLDivElement>(null);
 
@@ -162,6 +174,8 @@ export default function Aurora(props: AuroraProps) {
       if (program) {
         program.uniforms.uResolution.value = [width, height];
       }
+      // Resizing clears the canvas, which a paused loop would leave blank.
+      requestFrameRef.current?.();
     }
     window.addEventListener('resize', resize);
 
@@ -191,16 +205,24 @@ export default function Aurora(props: AuroraProps) {
     const mesh = new Mesh(gl, { geometry, program });
     ctn.appendChild(gl.canvas);
 
-    let animateId = 0;
+    // Without a `time` prop the clock is accumulated frame by frame (a frame
+    // counted as at most 100 ms), so a speed change or a pause does not jump
+    // the aurora elsewhere.
+    const clock = { value: 0, last: null as number | null };
+    let animateId: number | null = null;
     const update = (t: number) => {
-      animateId = requestAnimationFrame(update);
-      const { time = t * 0.01, speed = 1.0 } = propsRef.current;
+      animateId = propsRef.current.paused ? null : requestAnimationFrame(update);
+      const current = { ...propsRef.current, ...propsRef.current.params?.() };
+      const { speed = 1.0 } = current;
+      const frameMs = clock.last === null ? 0 : Math.min(100, Math.max(0, t - clock.last));
+      clock.last = propsRef.current.paused ? null : t;
+      clock.value += frameMs * 0.001 * speed;
       if (program) {
-        program.uniforms.uTime.value = time * speed * 0.1;
-        program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
-        program.uniforms.uBlend.value = propsRef.current.blend ?? blend;
-        program.uniforms.uLightMode.value = (propsRef.current.lightMode ?? lightMode) ? 1 : 0;
-        const stops = propsRef.current.colorStops ?? colorStops;
+        program.uniforms.uTime.value = current.time === undefined ? clock.value : current.time * speed * 0.1;
+        program.uniforms.uAmplitude.value = current.amplitude ?? 1.0;
+        program.uniforms.uBlend.value = current.blend ?? blend;
+        program.uniforms.uLightMode.value = (current.lightMode ?? lightMode) ? 1 : 0;
+        const stops = current.colorStops ?? colorStops;
         program.uniforms.uColorStops.value = stops.map((hex: string) => {
           const c = new Color(hex);
           return [c.r, c.g, c.b];
@@ -208,12 +230,16 @@ export default function Aurora(props: AuroraProps) {
         renderer.render({ scene: mesh });
       }
     };
-    animateId = requestAnimationFrame(update);
+    requestFrameRef.current = () => {
+      if (animateId === null) animateId = requestAnimationFrame(update);
+    };
+    requestFrameRef.current();
 
     resize();
 
     return () => {
-      cancelAnimationFrame(animateId);
+      requestFrameRef.current = null;
+      if (animateId !== null) cancelAnimationFrame(animateId);
       window.removeEventListener('resize', resize);
       if (ctn && gl.canvas.parentNode === ctn) {
         ctn.removeChild(gl.canvas);
