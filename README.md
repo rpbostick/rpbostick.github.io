@@ -34,7 +34,7 @@ Every page has a System / Light / Dark switch in the top right (`src/shared/Them
 
 The demo pages (`/figurewright/`, `/colorwright/`, `/skywright/`) have a control cluster there instead (`src/shared/ControlCluster.tsx`): the theme switch, an Animations toggle and, on skywright, Sun, Rain and Snow. The Animations choice (`src/shared/motion.ts`) is saved in `localStorage` as `motion`; with nothing saved it follows `prefers-reduced-motion`. With animations off, every background shows one still frame, and every animation loop pauses while the tab is hidden.
 
-colorwright has the React Bits Iridescence behind it and skywright the Aurora (`src/backdrops/`). The aurora drifts between sunny, rainy and snowy feels, and Sun, Rain and Snow hold one for 20 s (`src/backdrops/weather.ts`). Each background sits under a wash of the demo's page color (`src/backdrops/wash.ts`); `npm run check:backdrops` checks that the demos' muted text stays at 4.5:1 or more over every background color, and `npm run test:unit` runs the unit tests for the motion state, the weather timing and host mode.
+colorwright has the React Bits Iridescence behind it and skywright the Aurora (`src/backdrops/`). The aurora drifts between sunny, rainy and snowy feels, and Sun, Rain and Snow hold one for 20 s (`src/backdrops/weather.ts`). Each background sits under a wash of the demo's page color (`src/backdrops/wash.ts`); `npm run check:backdrops` checks that the demos' muted text, and colorwright's faint text, stay at 4.5:1 or more over every background color, and `npm run test:unit` runs the unit tests for the motion state, the weather timing and host mode.
 
 The figurewright images use head, hand and shoe art from [Open Peeps](https://www.openpeeps.com/) by Pablo Stanley (CC0).
 

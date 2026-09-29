@@ -1,10 +1,10 @@
 // Checks that the backdrops behind colorwright and skywright keep the demos'
-// muted text readable. For every aurora feel (and the cross-fades between
-// them), the iridescence, and both themes, it works out the brightest and
-// darkest colors the shader can draw, puts the wash over them, puts the
-// demo's panel fill over that at the 70% opacity of the panels' translucent
-// edge, and measures muted text against the result. Every pair must reach
-// 4.5:1. It also checks that src/backdrops/wash.ts still matches the colors
+// dim text (muted, and colorwright's faint) readable. For every aurora feel
+// (and the cross-fades between them), the iridescence, and both themes, it
+// works out the brightest and darkest colors the shader can draw, puts the
+// wash over them, puts the demo's panel fill over that at the 70% opacity of
+// the panels' translucent edge, and measures dim text against the result.
+// Every pair must reach 4.5:1. It also checks that src/backdrops/wash.ts still matches the colors
 // in the demo files. Exits 1 on any failure. Run: node scripts/check-backdrops.ts
 import { readFileSync, readdirSync } from 'node:fs'
 import { hexToRgb, type Rgb } from '../src/backdrops/oklab.ts'
@@ -111,12 +111,13 @@ function backdropColors(demo: Demo, theme: Theme): { label: string; colors: Rgb[
 function worstContrast(demo: Demo, theme: Theme, colors: Rgb[], wash: number): number {
   const palette = DEMO_PALETTES[demo][theme]
   const background = hexToRgb(palette.background)
-  const muted = hexToRgb(palette.muted)
+  const dimText = palette.dimText.map(hexToRgb)
   let worst = Infinity
   for (const color of colors) {
     const washed = over(color, background, wash)
     for (const panel of palette.panels) {
-      worst = Math.min(worst, contrastRatio(muted, over(washed, hexToRgb(panel), PANEL_EDGE_OPACITY)))
+      const fill = over(washed, hexToRgb(panel), PANEL_EDGE_OPACITY)
+      for (const text of dimText) worst = Math.min(worst, contrastRatio(text, fill))
     }
   }
   return worst
@@ -176,7 +177,7 @@ function colorwrightPalettes(): Record<Theme, DemoPalette> {
     return {
       background: cssValue(block, '--bg', where),
       panels: [...new Set(panels)],
-      muted: cssValue(block, '--text-muted', where),
+      dimText: [cssValue(block, '--text-muted', where), cssValue(block, '--text-faint', where)],
     }
   }
   return { light: palette(light, ':root'), dark: palette(dark, ':root[data-theme=dark]') }
@@ -190,7 +191,7 @@ function skywrightPalettes(): Record<Theme, DemoPalette> {
   const pattern = /\{background:'(#[0-9a-f]{6})',surface:'(#[0-9a-f]{6})',card:'#[0-9a-f]{6}',text:'#[0-9a-f]{6}',muted:'(#[0-9a-f]{6})'/g
   const matches = [...source.matchAll(pattern)]
   if (matches.length !== 2) throw new Error(`${bundles[0]}: expected the light and dark palettes, found ${matches.length}`)
-  const [light, dark] = matches.map(([, background, surface, muted]) => ({ background, panels: [surface], muted }))
+  const [light, dark] = matches.map(([, background, surface, muted]) => ({ background, panels: [surface], dimText: [muted] }))
   return { light, dark }
 }
 
@@ -218,4 +219,4 @@ if (failures.length > 0) {
   for (const failure of failures) console.log(`  ${failure}`)
   process.exit(1)
 }
-console.log(`PASS: muted text reaches ${MIN_CONTRAST}:1 over every backdrop color, feel and panel fill in both themes`)
+console.log(`PASS: muted and faint text reach ${MIN_CONTRAST}:1 over every backdrop color, feel and panel fill in both themes`)
