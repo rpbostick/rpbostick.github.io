@@ -3,12 +3,25 @@
 <head>
   <meta charset="utf-8">
   <title>Colorwright</title>
+  <script>
+    if (!document.documentElement.hasAttribute('data-host-controls')) try {
+      var savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'light' || savedTheme === 'dark') document.documentElement.setAttribute('data-theme', savedTheme);
+    } catch (err) {}
+  </script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
-    <h1>Colorwright</h1>
-    <p class="tagline">Click-to-equip Open Peeps avatar editor — every part is recolorable</p>
+    <div class="heading">
+      <h1>Colorwright</h1>
+      <p class="tagline">Click-to-equip Open Peeps avatar editor — every part is recolorable</p>
+    </div>
+    <div class="theme-switch" role="radiogroup" aria-label="Colour theme" data-theme-switch>
+      <button type="button" role="radio" aria-checked="true" tabindex="0" data-theme-choice="system">System</button>
+      <button type="button" role="radio" aria-checked="false" tabindex="-1" data-theme-choice="light">Light</button>
+      <button type="button" role="radio" aria-checked="false" tabindex="-1" data-theme-choice="dark">Dark</button>
+    </div>
   </header>
 
   <p id="status" class="status" role="status" aria-live="polite"></p>
@@ -48,8 +61,10 @@
   <footer class="site-notice">
     <p>Built on <a href="https://www.openpeeps.com/">Open Peeps</a>' CC0 line art. Unofficial: not affiliated with or endorsed by Pablo Stanley or Open Peeps.</p>
     <p data-static-notice hidden>Looks are saved in this browser only.</p>
+    <p data-more-demos hidden><a>← More demos</a></p>
   </footer>
 
+  <script src="theme.js"></script>
   <script src="config.js"></script>
   <script src="logic.js"></script>
   <script src="data.js"></script>
