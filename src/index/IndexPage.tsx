@@ -36,7 +36,7 @@ const projects: Project[] = [
     href: '/colorwright/',
     image: {
       src: '/colorwright/card.webp',
-      alt: 'A hand-drawn Open Peeps figure with glasses, a beard, a slate jumper and black trousers',
+      alt: 'A hand-drawn Open Peeps figure with a pink mohawk, a green top and green-soled boots, pointing up',
       width: 1600,
       height: 700,
     },
