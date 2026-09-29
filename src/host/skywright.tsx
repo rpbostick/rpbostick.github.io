@@ -3,7 +3,6 @@
 import AuroraBackdrop from '../backdrops/AuroraBackdrop.tsx'
 import ControlCluster from '../shared/ControlCluster.tsx'
 import { mountInOwnElement } from '../shared/mountInOwnElement.tsx'
-import BackdropCredit from './BackdropCredit.tsx'
 import WeatherButtons from './WeatherButtons.tsx'
 import './host.css'
 
@@ -14,4 +13,3 @@ mountInOwnElement(
     <WeatherButtons />
   </ControlCluster>,
 )
-mountInOwnElement('site-credit', <BackdropCredit corner />)
