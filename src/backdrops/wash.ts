@@ -19,7 +19,7 @@ export interface DemoPalette {
 // From public/colorwright/style.css and skywright's palettes (its bundle).
 export const DEMO_PALETTES: Record<Demo, Record<Theme, DemoPalette>> = {
   colorwright: {
-    light: { background: '#ffffff', panels: ['#ffffff', '#f3f4f6', '#f2f2f2'], dimText: ['#555555', '#687079'] },
+    light: { background: '#ffffff', panels: ['#ffffff', '#f3f4f6', '#f2f2f2'], dimText: ['#555555', '#5e666f'] },
     dark: { background: '#1a1816', panels: ['#24211e', '#1f1c19'], dimText: ['#b3aa9d', '#a39a8d'] },
   },
   skywright: {
@@ -28,12 +28,12 @@ export const DEMO_PALETTES: Record<Demo, Record<Theme, DemoPalette>> = {
   },
 }
 
-// The check prints the least wash each backdrop needs for 4.5:1 (0.91 for the
+// The check prints the least wash each backdrop needs for 4.5:1 (0.46 for the
 // light iridescence, set by colorwright's faint text; 0.39 for the dark snowy
 // aurora; little or none for the rest); these add a margin over that, and a
 // floor so the backdrop stays a background rather than the page.
 export const WASH_OPACITY: Record<Demo, Record<Theme, number>> = {
-  colorwright: { light: 0.93, dark: 0.35 },
+  colorwright: { light: 0.5, dark: 0.35 },
   skywright: { light: 0.25, dark: 0.45 },
 }
 
