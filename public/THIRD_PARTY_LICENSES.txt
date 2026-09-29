@@ -1,10 +1,12 @@
 Third-party software on this site
 
-The site bundle (the index and /figurewright/) ships the packages below.
-The skywright demo lists its own at /skywright/THIRD_PARTY_LICENSES.txt.
+The site bundle (the index, /figurewright/, and the controls and
+backgrounds it adds to /colorwright/ and /skywright/) ships the packages
+below. The skywright demo lists its own at /skywright/THIRD_PARTY_LICENSES.txt.
 
-3 packages, grouped by licence:
+4 packages, grouped by licence:
   MIT: 3
+  Unlicense: 1
 
 ========================================================================
 MIT (3 packages)
@@ -45,9 +47,22 @@ SOFTWARE.
 ------------------------------------------------------------------------
 
 ========================================================================
+Unlicense (1 package)
+========================================================================
+
+These packages ship no licence file; their declared licence is given.
+
+ogl@1.0.11
+  Licence: Unlicense
+  Repository: git+https://gordonnl@github.com/oframe/ogl
+
+------------------------------------------------------------------------
+
+========================================================================
 React Bits
 
-The background animation on /figurewright/ is adapted from React Bits
+The background animations on /figurewright/ (Waves), /colorwright/
+(Iridescence) and /skywright/ (Aurora) are adapted from React Bits
 (reactbits.dev), MIT + Commons Clause. Its licence and the list of
 adapted files are in src/reactbits/LICENSE.md in this repository:
 https://github.com/rpbostick/rpbostick.github.io/blob/main/src/reactbits/LICENSE.md

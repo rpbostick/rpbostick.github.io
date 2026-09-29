@@ -12,7 +12,7 @@ const projects: Project[] = [
     href: '/figurewright/',
     image: {
       src: '/figurewright/card.webp',
-      alt: 'Five hand-drawn figures of different builds and heights standing in a row, in tops, jackets, shorts and trousers',
+      alt: 'Five hand-drawn figures in a row: three dressed figurewright figures of different builds in a relaxed, easing pose, between the two Open Peeps drawings they are built from, on the left with its rig of joints and bones, on the right pointing a finger',
       width: 1600,
       height: 700,
     },

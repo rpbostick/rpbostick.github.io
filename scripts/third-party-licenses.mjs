@@ -24,13 +24,15 @@ const targets = {
     intro: [
       'Third-party software on this site',
       '',
-      'The site bundle (the index and /figurewright/) ships the packages below.',
-      'The skywright demo lists its own at /skywright/THIRD_PARTY_LICENSES.txt.',
+      'The site bundle (the index, /figurewright/, and the controls and',
+      'backgrounds it adds to /colorwright/ and /skywright/) ships the packages',
+      'below. The skywright demo lists its own at /skywright/THIRD_PARTY_LICENSES.txt.',
     ],
     outro: [
       'React Bits',
       '',
-      'The background animation on /figurewright/ is adapted from React Bits',
+      'The background animations on /figurewright/ (Waves), /colorwright/',
+      '(Iridescence) and /skywright/ (Aurora) are adapted from React Bits',
       '(reactbits.dev), MIT + Commons Clause. Its licence and the list of',
       'adapted files are in src/reactbits/LICENSE.md in this repository:',
       'https://github.com/rpbostick/rpbostick.github.io/blob/main/src/reactbits/LICENSE.md',
