@@ -12,7 +12,7 @@ const projects: Project[] = [
     href: '/figurewright/',
     image: {
       src: '/figurewright/card.webp',
-      alt: 'Five hand-drawn figures of different builds and heights standing in a row, in tops, jackets, shorts and trousers',
+      alt: 'Five hand-drawn figures in a row: three dressed figurewright figures of different builds in a relaxed, easing pose, between the two Open Peeps drawings they are built from, on the left with its rig of joints and bones, on the right pointing a finger',
       width: 1600,
       height: 700,
     },
@@ -32,11 +32,11 @@ const projects: Project[] = [
   {
     title: 'colorwright',
     description:
-      'An Open Peeps avatar editor: swap and recolour hand-drawn parts head to toe. Looks are saved in your browser.',
+      'An Open Peeps avatar editor: swap and recolor hand-drawn parts head to toe. Looks are saved in your browser.',
     href: '/colorwright/',
     image: {
       src: '/colorwright/card.webp',
-      alt: 'A hand-drawn Open Peeps figure with glasses, a beard, a slate jumper and black trousers',
+      alt: 'A hand-drawn Open Peeps figure with a pink mohawk, a green top and green-soled boots, pointing up',
       width: 1600,
       height: 700,
     },
@@ -85,7 +85,7 @@ export default function IndexPage() {
         ))}
       </ul>
       <footer className="index-footer">
-        <a href="/THIRD_PARTY_LICENSES.txt">Third-party licences</a>
+        <a href="/THIRD_PARTY_LICENSES.txt">Third-party licenses</a>
       </footer>
     </main>
   )

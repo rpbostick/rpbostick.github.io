@@ -7,7 +7,7 @@ import IndexPage from './IndexPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeSwitch />
+    <ThemeSwitch className="site-switch-corner" />
     <IndexPage />
   </StrictMode>,
 )

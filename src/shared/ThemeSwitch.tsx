@@ -10,7 +10,7 @@ const OPTIONS: { choice: ThemeChoice; label: string }[] = [
 
 // A radio group: Tab reaches the checked option only, and the arrow keys
 // move the choice (and focus) along the group, wrapping at the ends.
-export default function ThemeSwitch() {
+export default function ThemeSwitch({ className }: { className?: string }) {
   const choice = useThemeChoice()
   const buttonsRef = useRef<(HTMLButtonElement | null)[]>([])
 
@@ -28,7 +28,7 @@ export default function ThemeSwitch() {
   }
 
   return (
-    <div className="theme-switch" role="radiogroup" aria-label="Colour theme" onKeyDown={onKeyDown}>
+    <div className={className ? `site-switch ${className}` : 'site-switch'} role="radiogroup" aria-label="Color theme" onKeyDown={onKeyDown}>
       {OPTIONS.map((option, index) => {
         const checked = option.choice === choice
         return (
@@ -41,7 +41,7 @@ export default function ThemeSwitch() {
             role="radio"
             aria-checked={checked}
             tabIndex={checked ? 0 : -1}
-            className="theme-switch-option"
+            className="site-switch-option"
             onClick={() => setThemeChoice(option.choice)}
           >
             {option.label}

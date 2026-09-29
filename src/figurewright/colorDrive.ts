@@ -1,4 +1,4 @@
-// Where the hero sits on the 72-stop colour loop, as a real number. It drifts
+// Where the hero sits on the 72-stop color loop, as a real number. It drifts
 // forward on its own; wheel ticks take over, easing to whole stops, and the
 // drift resumes a while after the last tick. Time is passed in so the logic
 // can be driven from the Waves draw loop and from a check script alike.
@@ -7,14 +7,14 @@ export const DRIFT_MS_PER_STOP = 4000
 export const EASE_MS = 250
 export const RESUME_AFTER_MS = 8000
 // A frame gap longer than this (a paused, off-screen hero or a background
-// tab) is treated as this long, so the colour never leaps on return.
+// tab) is treated as this long, so the color never leaps on return.
 const MAX_FRAME_MS = 100
 
 function easeOutCubic(progress: number): number {
   return 1 - (1 - progress) ** 3
 }
 
-export class ColourDrive {
+export class ColorDrive {
   reducedMotion = false
   // Unwrapped, so an ease across the 71 → 0 seam stays continuous.
   private position = 0

@@ -1,4 +1,4 @@
-// The hero's colour loop: 12 hue families × 6 shades = 72 stops, built in
+// The hero's color loop: 12 hue families × 6 shades = 72 stops, built in
 // OKLCH so every family steps evenly in perceived lightness.
 
 export const FAMILY_NAMES = [
@@ -21,7 +21,7 @@ export const SHADE_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'] as const
 export const STOP_COUNT = FAMILY_NAMES.length * SHADE_LETTERS.length
 
 // The hero backgrounds the lines are drawn on; the light one is the site's
-// paper colour, the dark one its dark-mode page colour.
+// paper color, the dark one its dark-mode page color.
 export const heroBackgrounds = { light: '#faf6ee', dark: '#1a1816' } as const
 
 export type Theme = keyof typeof heroBackgrounds
@@ -66,26 +66,26 @@ function encodeGamma(linear: number): number {
   return linear <= 0.0031308 ? 12.92 * linear : 1.055 * linear ** (1 / 2.4) - 0.055
 }
 
-function inSrgbGamut(colour: Oklch): boolean {
-  return oklchToLinearSrgb(colour).every((channel) => channel >= -1e-6 && channel <= 1 + 1e-6)
+function inSrgbGamut(color: Oklch): boolean {
+  return oklchToLinearSrgb(color).every((channel) => channel >= -1e-6 && channel <= 1 + 1e-6)
 }
 
-// Lowers chroma until the colour fits in sRGB, keeping lightness and hue.
-export function clampToGamut(colour: Oklch): Oklch {
-  if (inSrgbGamut(colour)) return colour
+// Lowers chroma until the color fits in sRGB, keeping lightness and hue.
+export function clampToGamut(color: Oklch): Oklch {
+  if (inSrgbGamut(color)) return color
   let low = 0
-  let high = colour.c
+  let high = color.c
   for (let iteration = 0; iteration < 24; iteration++) {
     const mid = (low + high) / 2
-    if (inSrgbGamut({ ...colour, c: mid })) low = mid
+    if (inSrgbGamut({ ...color, c: mid })) low = mid
     else high = mid
   }
-  return { ...colour, c: low }
+  return { ...color, c: low }
 }
 
 // 8-bit sRGB channels, clipped; callers clamp chroma first for exact stops.
-export function oklchToRgb255(colour: Oklch): [number, number, number] {
-  const [red, green, blue] = oklchToLinearSrgb(colour).map((channel) =>
+export function oklchToRgb255(color: Oklch): [number, number, number] {
+  const [red, green, blue] = oklchToLinearSrgb(color).map((channel) =>
     Math.round(Math.min(1, Math.max(0, encodeGamma(Math.max(0, channel)))) * 255),
   )
   return [red, green, blue]
@@ -96,7 +96,7 @@ export function rgb255ToHex([red, green, blue]: [number, number, number]): strin
 }
 
 // Serpentine order: odd families (1, 3, …) run A→F, even families F→A, so
-// neighbouring stops never jump in lightness and 12A wraps back to 1A.
+// neighboring stops never jump in lightness and 12A wraps back to 1A.
 export function buildStops(theme: Theme): Stop[] {
   const { a: lightA, f: lightF } = lightnessRange[theme]
   const shadeStep = (lightA - lightF) / (SHADE_LETTERS.length - 1)
@@ -107,12 +107,12 @@ export function buildStops(theme: Theme): Stop[] {
     const hue = ((familyIndex + 1) * 30) % 360
     for (let step = 0; step < SHADE_LETTERS.length; step++) {
       const shadeIndex = familyIndex % 2 === 0 ? step : SHADE_LETTERS.length - 1 - step
-      const colour = clampToGamut({ l: lightA - shadeStep * shadeIndex, c: TARGET_CHROMA, h: hue })
+      const color = clampToGamut({ l: lightA - shadeStep * shadeIndex, c: TARGET_CHROMA, h: hue })
       stops.push({
-        ...colour,
+        ...color,
         label: `${familyIndex + 1}${SHADE_LETTERS[shadeIndex]}`,
         name,
-        hex: rgb255ToHex(oklchToRgb255(colour)),
+        hex: rgb255ToHex(oklchToRgb255(color)),
       })
     }
   })
@@ -134,7 +134,7 @@ export function nearestStopIndex(position: number): number {
 
 // Interpolates in OKLCH between the two stops either side of `position`,
 // taking the short way round the hue circle (330° → 0° at the wrap).
-export function colourAt(stops: Stop[], position: number): string {
+export function colorAt(stops: Stop[], position: number): string {
   const wrapped = wrapPosition(position)
   const index = Math.floor(wrapped)
   const fraction = wrapped - index

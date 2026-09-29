@@ -1,0 +1,45 @@
+/* Theme tokens. `data-theme` on <html> is the theme switch's choice
+   (src/shared/theme.ts); without it the system setting decides. The dark
+   values appear twice because plain CSS cannot share one block between a
+   media query and an attribute selector.
+
+   On a demo page in host mode (`data-host-controls`, see
+   scripts/hostMode.ts) the demo keeps its own tokens on <html>, and the
+   site's apply only inside the site's own elements (`.site-ui`). */
+:root:not([data-host-controls]),
+.site-ui {
+  --bg: #faf6ee;
+  --surface: #ffffff;
+  --text: #1f1c19;
+  --muted: #5f5850;
+  --border: #e4ddd0;
+  --accent: #b4532a;
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark']:not([data-host-controls]),
+:root[data-theme='dark'] .site-ui {
+  --bg: #1a1816;
+  --surface: #24211e;
+  --text: #efe9df;
+  --muted: #b3aa9d;
+  --border: #3a3530;
+  --accent: #e8905f;
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]):not([data-host-controls]),
+  :root:not([data-theme]) .site-ui {
+    --bg: #1a1816;
+    --surface: #24211e;
+    --text: #efe9df;
+    --muted: #b3aa9d;
+    --border: #3a3530;
+    --accent: #e8905f;
+
+    color-scheme: dark;
+  }
+}

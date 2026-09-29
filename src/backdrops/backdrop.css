@@ -1,0 +1,12 @@
+.site-backdrop {
+  position: fixed;
+  inset: 0;
+  /* Below the page, which is transparent in host mode. */
+  z-index: -1;
+  pointer-events: none;
+}
+
+.site-backdrop > * {
+  position: absolute;
+  inset: 0;
+}

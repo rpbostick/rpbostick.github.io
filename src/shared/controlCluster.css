@@ -1,0 +1,30 @@
+/* Two rows of pills, at most 280 × 64 px: each row is about 28 px tall
+   (0.8rem text at line-height 1.25, 0.2rem padding, the pill's 2 px padding
+   and border). The font is set here because on a demo page the cluster
+   inherits the demo's. */
+.site-controls {
+  position: fixed;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  max-width: 280px;
+  max-height: 64px;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.site-controls-row {
+  display: flex;
+  gap: 4px;
+}
+
+.site-switch-option svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}

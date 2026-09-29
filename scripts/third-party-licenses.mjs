@@ -24,14 +24,16 @@ const targets = {
     intro: [
       'Third-party software on this site',
       '',
-      'The site bundle (the index and /figurewright/) ships the packages below.',
-      'The skywright demo lists its own at /skywright/THIRD_PARTY_LICENSES.txt.',
+      'The site bundle (the index, /figurewright/, and the controls and',
+      'backgrounds it adds to /colorwright/ and /skywright/) ships the packages',
+      'below. The skywright demo lists its own at /skywright/THIRD_PARTY_LICENSES.txt.',
     ],
     outro: [
       'React Bits',
       '',
-      'The background animation on /figurewright/ is adapted from React Bits',
-      '(reactbits.dev), MIT + Commons Clause. Its licence and the list of',
+      'The background animations on /figurewright/ (Waves), /colorwright/',
+      '(Iridescence) and /skywright/ (Aurora) are adapted from React Bits',
+      '(reactbits.dev), MIT + Commons Clause. Its license and the list of',
       'adapted files are in src/reactbits/LICENSE.md in this repository:',
       'https://github.com/rpbostick/rpbostick.github.io/blob/main/src/reactbits/LICENSE.md',
       '',
@@ -49,16 +51,16 @@ const targets = {
   },
 }
 
-// license-checker falls back to a README when a package has no licence file;
-// a README is not a licence text, so those packages get the declared licence only.
-const LICENCE_FILE = /^(licen[cs]e|copying)/i
+// license-checker falls back to a README when a package has no license file;
+// a README is not a license text, so those packages get the declared license only.
+const LICENSE_FILE = /^(licen[cs]e|copying)/i
 
 function expandHome(path) {
   if (path.startsWith('~/')) return join(homedir(), path.slice(2))
   return path
 }
 
-function declaredLicence(info) {
+function declaredLicense(info) {
   return Array.isArray(info.licenses) ? info.licenses.join(' AND ') : info.licenses
 }
 
@@ -67,11 +69,11 @@ function readPackages(jsonPath) {
   return Object.entries(report)
     .filter(([, info]) => !info.private)
     .map(([id, info]) => {
-      if (!info.licenses) throw new Error(`${id}: no declared licence`)
-      const hasFile = info.licenseFile && LICENCE_FILE.test(basename(info.licenseFile))
+      if (!info.licenses) throw new Error(`${id}: no declared license`)
+      const hasFile = info.licenseFile && LICENSE_FILE.test(basename(info.licenseFile))
       return {
         id,
-        licence: declaredLicence(info),
+        license: declaredLicense(info),
         repository: info.repository ?? '(none given)',
         text: hasFile ? readFileSync(expandHome(info.licenseFile), 'utf8').trim() : null,
       }
@@ -79,14 +81,14 @@ function readPackages(jsonPath) {
 }
 
 function packageLines(pkg) {
-  return [`${pkg.id}`, `  Licence: ${pkg.licence}`, `  Repository: ${pkg.repository}`]
+  return [`${pkg.id}`, `  License: ${pkg.license}`, `  Repository: ${pkg.repository}`]
 }
 
-// Packages from one project often ship the same licence text byte for byte
+// Packages from one project often ship the same license text byte for byte
 // (every @babel package, say); each distinct text is printed once, after
 // the packages it covers.
-function renderGroup(licence, packages) {
-  const lines = [rule('='), `${licence} (${countPackages(packages.length)})`, rule('=')]
+function renderGroup(license, packages) {
+  const lines = [rule('='), `${license} (${countPackages(packages.length)})`, rule('=')]
   const byText = new Map()
   const withoutFile = []
   for (const pkg of packages) {
@@ -103,7 +105,7 @@ function renderGroup(licence, packages) {
     lines.push('', text, '', rule('-'))
   }
   if (withoutFile.length > 0) {
-    lines.push('', 'These packages ship no licence file; their declared licence is given.', '')
+    lines.push('', 'These packages ship no license file; their declared license is given.', '')
     for (const pkg of withoutFile) lines.push(...packageLines(pkg))
     lines.push('', rule('-'))
   }
@@ -121,14 +123,14 @@ function rule(char) {
 function render(target, packages) {
   const groups = new Map()
   for (const pkg of packages.sort((a, b) => a.id.localeCompare(b.id))) {
-    if (!groups.has(pkg.licence)) groups.set(pkg.licence, [])
-    groups.get(pkg.licence).push(pkg)
+    if (!groups.has(pkg.license)) groups.set(pkg.license, [])
+    groups.get(pkg.license).push(pkg)
   }
   const ordered = [...groups].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]))
-  const lines = [...target.intro, '', `${countPackages(packages.length)}, grouped by licence:`]
-  for (const [licence, group] of ordered) lines.push(`  ${licence}: ${group.length}`)
+  const lines = [...target.intro, '', `${countPackages(packages.length)}, grouped by license:`]
+  for (const [license, group] of ordered) lines.push(`  ${license}: ${group.length}`)
   lines.push('')
-  for (const [licence, group] of ordered) lines.push(...renderGroup(licence, group), '')
+  for (const [license, group] of ordered) lines.push(...renderGroup(license, group), '')
   if (target.outro.length > 0) lines.push(rule('='), ...target.outro, '')
   return lines.join('\n')
 }

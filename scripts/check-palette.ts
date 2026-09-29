@@ -1,4 +1,4 @@
-// Prints every hero colour stop with its contrast against both hero
+// Prints every hero color stop with its contrast against both hero
 // backgrounds and exits 1 if any stop is under 1.5:1 or the serpentine order
 // jumps in lightness. Run: node scripts/check-palette.ts
 import { STOP_COUNT, heroBackgrounds, stopsByTheme, type Theme } from '../src/figurewright/palette.ts'
@@ -56,4 +56,4 @@ if (failures.length > 0) {
   for (const failure of failures) console.log(`  ${failure}`)
   process.exit(1)
 }
-console.log(`PASS: all ${STOP_COUNT * themes.length} stops are at least ${MIN_LINE_CONTRAST}:1 against their hero background, and no neighbouring stops jump in lightness`)
+console.log(`PASS: all ${STOP_COUNT * themes.length} stops are at least ${MIN_LINE_CONTRAST}:1 against their hero background, and no neighboring stops jump in lightness`)
