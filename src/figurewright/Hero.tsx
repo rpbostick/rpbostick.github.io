@@ -5,7 +5,7 @@ import { useTheme } from '../shared/theme.ts'
 import { useMediaQuery } from '../shared/useMediaQuery.ts'
 import { usePageVisible } from '../shared/usePageVisible.ts'
 import { ColorDrive, wheelTicks } from './colorDrive.ts'
-import { activeAfterPress, clickActivates, isDrag, MIDDLE_BUTTON, startsDrag } from './heroInput.ts'
+import { activeAfterPress, clickActivates, isDrag, MIDDLE_BUTTON, onContent, startsDrag, WavesPointer } from './heroInput.ts'
 import { colorAt, heroBackgrounds, nearestStopIndex, stopsByTheme } from './palette.ts'
 import { dominantAxis, dragDelta, motionAt, PatternDrive, patternLabel, type Axis } from './patternDrive.ts'
 
@@ -15,6 +15,12 @@ const SPLASH = { src: '/figurewright/splash-easing.svg', width: 1355, height: 76
 // because the Waves draw loop, not rendering, advances them.
 const drive = new ColorDrive()
 const patternDrive = new PatternDrive()
+const wavesPointer = new WavesPointer()
+
+// Called by Waves once per frame.
+function wavesPointerNow() {
+  return wavesPointer.current
+}
 
 function onStrip(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest('.hero-strip') !== null
@@ -100,7 +106,8 @@ export default function Hero() {
         return
       }
       draggedRef.current = false
-      if (!startsDrag(event.button, event.pointerType, activeRef.current, onStrip(event.target))) return
+      const fromContent = !(event.target instanceof Element) || onContent(event.target)
+      if (!startsDrag(event.button, event.pointerType, activeRef.current, fromContent)) return
       const now = performance.now()
       drag = {
         pointerId: event.pointerId,
@@ -112,9 +119,12 @@ export default function Hero() {
         axis: null,
       }
       patternDrive.grab(now)
+      wavesPointer.grab(event.clientX, event.clientY)
+      setDragging(true)
     }
     function onPointerMove(event: PointerEvent) {
       if (!drag || event.pointerId !== drag.pointerId) return
+      wavesPointer.move(event.clientX, event.clientY)
       if (drag.axis === null) {
         const fromStartX = event.clientX - drag.startX
         const fromStartY = event.clientY - drag.startY
@@ -124,7 +134,6 @@ export default function Hero() {
         // Captured only once it is a drag, so a plain click keeps its target.
         hero?.setPointerCapture(event.pointerId)
         window.getSelection()?.removeAllRanges()
-        setDragging(true)
       }
       // The travel up to the threshold counts too (last = start until now).
       const now = performance.now()
@@ -141,6 +150,7 @@ export default function Hero() {
     function onPointerEnd(event: PointerEvent) {
       if (!drag || event.pointerId !== drag.pointerId) return
       if (drag.axis !== null) patternDrive.release(performance.now())
+      wavesPointer.release()
       drag = null
       setDragging(false)
     }
@@ -261,6 +271,7 @@ export default function Hero() {
       <Waves
         lineColor={lineColor}
         motion={waveMotion}
+        pointer={wavesPointerNow}
         backgroundColor={heroBackgrounds[theme]}
         // With animations off the waves hold still, except while someone is
         // playing with the hero: stepped colors and dragged patterns land

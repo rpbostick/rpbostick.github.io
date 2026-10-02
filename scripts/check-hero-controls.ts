@@ -1,5 +1,5 @@
 // Checks the hero's pointer controls: the middle-click toggle, click versus
-// drag, the drag gain and direction, momentum and the pattern tag.
+// drag, where a drag may start, the pointer the waves follow, the drag gain and direction, momentum and the pattern tag.
 // Run: node scripts/check-hero-controls.ts
 import assert from 'node:assert/strict'
 import {
@@ -9,7 +9,9 @@ import {
   isDrag,
   LEFT_BUTTON,
   MIDDLE_BUTTON,
+  onContent,
   startsDrag,
+  WavesPointer,
 } from '../src/figurewright/heroInput.ts'
 import {
   COAST_TAU_MS,
@@ -28,6 +30,19 @@ import {
 
 const RIGHT_BUTTON = 2
 const FRAME_MS = 16
+
+// A stand-in for an element whose ancestors match `selector`: `closest`
+// finds it when it is one of the comma-separated selectors asked for.
+function inside(selector: string) {
+  return {
+    closest: (query: string) => (query.split(',').some((part) => part.trim() === selector) ? {} : null),
+  }
+}
+
+// The press as Hero handles it: only a press that starts a drag grabs.
+function pressAt(pointer: WavesPointer, target: ReturnType<typeof inside>, x: number, y: number) {
+  if (startsDrag(LEFT_BUTTON, 'mouse', false, onContent(target))) pointer.grab(x, y)
+}
 
 function close(actual: number, expected: number, message = '') {
   assert.ok(Math.abs(actual - expected) < 1e-9, `${message} expected ${expected}, got ${actual}`)
@@ -63,13 +78,51 @@ const checks: [string, () => void][] = [
     },
   ],
   [
-    'a mouse drags whenever; a finger only while active; never from the strip or other buttons',
+    'a mouse drags whenever; a finger only while active; never from content or other buttons',
     () => {
       assert.equal(startsDrag(LEFT_BUTTON, 'mouse', false, false), true)
       assert.equal(startsDrag(LEFT_BUTTON, 'touch', false, false), false)
       assert.equal(startsDrag(LEFT_BUTTON, 'touch', true, false), true)
       assert.equal(startsDrag(LEFT_BUTTON, 'mouse', true, true), false)
       assert.equal(startsDrag(MIDDLE_BUTTON, 'mouse', true, false), false)
+    },
+  ],
+  [
+    'text, tags, buttons, the strip and data-solid are content; the waves and bare hero are not',
+    () => {
+      for (const selector of ['.hero-text', '.hero-tag', '.hero-hint', '.hero-strip', 'button', '[data-solid]']) {
+        assert.equal(onContent(inside(selector)), true, selector)
+      }
+      assert.equal(onContent(inside('.waves')), false)
+      assert.equal(onContent(inside('.hero-content')), false)
+      assert.equal(onContent(null), false)
+    },
+  ],
+  [
+    'hover feeds the waves no pointer',
+    () => {
+      const pointer = new WavesPointer()
+      pointer.move(40, 50)
+      assert.equal(pointer.current, null)
+    },
+  ],
+  [
+    'a drag from bare background feeds the pointer; one from content does not; release settles',
+    () => {
+      const pointer = new WavesPointer()
+      pressAt(pointer, inside('.waves'), 10, 20)
+      assert.deepEqual(pointer.current, { x: 10, y: 20 })
+      pointer.move(30, 25)
+      assert.deepEqual(pointer.current, { x: 30, y: 25 })
+      pointer.release()
+      assert.equal(pointer.current, null)
+      pointer.move(35, 25)
+      assert.equal(pointer.current, null, 'moves after release are hover')
+
+      const fromContent = new WavesPointer()
+      pressAt(fromContent, inside('.hero-text'), 10, 20)
+      fromContent.move(30, 25)
+      assert.equal(fromContent.current, null)
     },
   ],
   [
