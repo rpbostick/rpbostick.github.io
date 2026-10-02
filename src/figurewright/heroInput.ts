@@ -29,7 +29,7 @@ export function onContent(target: { closest?: (selector: string) => unknown } | 
   return typeof target?.closest === 'function' && target.closest(CONTENT_SELECTOR) !== null
 }
 
-// A drag starts only on bare background. A touch drag only morphs the
+// A drag starts only on bare background. A touch drag only stirs the
 // pattern while the hero is active; inactive, the finger scrolls the page.
 export function startsDrag(button: number, pointerType: string, active: boolean, onContent: boolean): boolean {
   if (button !== LEFT_BUTTON || onContent) return false
@@ -42,6 +42,7 @@ export function startsDrag(button: number, pointerType: string, active: boolean,
 // (the hero passes hero-relative ones, so a scroll mid-coast moves nothing).
 export class WavesPointer {
   private point: Point | null = null
+  private strokes = 0
   private readonly momentum = new Momentum()
   reducedMotion = false
 
@@ -50,7 +51,14 @@ export class WavesPointer {
     return this.point
   }
 
+  // Counts presses: a press during a coast moves the pointer in one frame,
+  // and this tells the waves it is a new stroke rather than a fling.
+  get stroke(): number {
+    return this.strokes
+  }
+
   grab(x: number, y: number, now: number) {
+    this.strokes++
     this.point = { x, y }
     this.momentum.press(x, y, now)
   }

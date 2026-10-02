@@ -11,6 +11,7 @@
     "check:color-drive": "node scripts/check-color-drive.ts",
     "check:hero-controls": "node scripts/check-hero-controls.ts",
     "check:momentum": "node scripts/check-momentum.ts",
+    "check:ripple-field": "node scripts/check-ripple-field.ts",
     "check:backdrops": "node scripts/check-backdrops.ts",
     "test:unit": "node --test scripts/*.test.ts",
     "preview": "vite preview"
