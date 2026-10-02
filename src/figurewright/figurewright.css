@@ -122,6 +122,35 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The pattern tag steps forward; the arrows beside it step either way. */
+.pattern-tags {
+  display: flex;
+  gap: 0.25rem;
+}
+
+/* Two classes and an element, so the buttons keep a pointer while the hero
+   is active. */
+.hero .pattern-tags button {
+  border: none;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.pattern-tags button:hover {
+  background: color-mix(in srgb, var(--bg) 95%, transparent);
+}
+
+.pattern-tags button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.pattern-arrow {
+  padding-inline: 0.55rem;
+  line-height: 1;
+}
+
 .pattern-icon {
   width: 0.8rem;
   text-align: center;

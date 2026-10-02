@@ -1,7 +1,7 @@
 // Where the hero sits on a loop of wave patterns, as a real number: 0 is the
 // first preset, 1 the second, and PRESETS.length wraps back to the first.
-// Dragging through the waves moves it; a fast drag moves it further per pixel,
-// and on release it coasts to a stop. Time is passed in, as in colorDrive.ts,
+// It rests on each preset for a while and eases on to the next by itself; the
+// pattern tag and its arrows step it. Time is passed in, as in colorDrive.ts,
 // so a check script can drive it.
 
 // Waves' own motion parameters. The line gaps stay fixed: changing them means
@@ -125,92 +125,76 @@ export function patternLabel(position: number): string {
   return `${PRESETS[index].name} → ${PRESETS[(index + 1) % PRESETS.length].name} ${percent}%`
 }
 
-// Pixels of slow drag that move the pattern one whole preset.
-export const PIXELS_PER_PRESET = 600
-// Pointer speed (px/ms) at which the gain has doubled.
-export const GAIN_SPEED = 1
-export const MAX_GAIN = 8
-
-// Distance counts for more the faster the pointer moves: 1 at a crawl,
-// 1 + (v / GAIN_SPEED)² above it, capped.
-export function dragGain(pixelsPerMs: number): number {
-  return Math.min(MAX_GAIN, 1 + (pixelsPerMs / GAIN_SPEED) ** 2)
-}
-
-export type Axis = 'x' | 'y'
-
-export function dominantAxis(dx: number, dy: number): Axis {
-  return Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y'
-}
-
-// One pointer move along the drag's axis, in presets: right and down are
-// forward. `dtMs` is floored at 1 so two events with one timestamp cannot
-// divide by zero.
-export function dragDelta(dx: number, dy: number, axis: Axis, dtMs: number): number {
-  const along = axis === 'x' ? dx : dy
-  const speed = Math.hypot(dx, dy) / Math.max(1, dtMs)
-  return (along * dragGain(speed)) / PIXELS_PER_PRESET
-}
-
-// Momentum after release halves roughly every COAST_TAU_MS × ln 2.
-export const COAST_TAU_MS = 350
-// A pointer held still this long before release throws nothing.
-export const STILL_BEFORE_RELEASE_MS = 80
-const MIN_COAST_RATE = 1e-5
+// How long the drift rests on each preset before easing to the next.
+export const HOLD_MS = 24000
+// How long the drift takes to ease from one preset to the next.
+export const DRIFT_EASE_MS = 4000
+// How long a step from the tag or its arrows takes; instant under reduced
+// motion.
+export const STEP_EASE_MS = 900
+// A frame gap longer than this (a paused, off-screen hero or a background
+// tab) is treated as this long, so the hold does not run out unseen.
 const MAX_FRAME_MS = 100
-// Weight of the newest move in the smoothed drag rate.
-const RATE_SMOOTHING = 0.4
 
 export class PatternDrive {
   reducedMotion = false
+  // Unwrapped, so an ease across the last → first seam stays continuous.
   private position = 0
-  // Presets per ms, smoothed while dragging, decaying while coasting.
-  private rate = 0
-  private coasting = false
-  private lastMove = 0
+  private target = 0
+  private easeFrom = 0
+  private easeStart = 0
+  private easeMs = 0
+  private easing = false
+  // Whether the ease in flight came from step(), so quick steps add up.
+  private stepped = false
+  // Frame time spent resting on the current preset.
+  private heldMs = 0
   private lastFrame: number | null = null
 
   get current(): number {
     return this.position
   }
 
-  // A press catches a coasting pattern and starts the drag rate from rest.
-  grab(now: number): void {
-    this.coasting = false
-    this.rate = 0
-    this.lastMove = now
-  }
-
-  drag(delta: number, dtMs: number, now: number): void {
-    this.coasting = false
-    this.position += delta
-    const rate = delta / Math.max(1, dtMs)
-    this.rate += (rate - this.rate) * RATE_SMOOTHING
-    this.lastMove = now
-  }
-
-  release(now: number): void {
-    const still = now - this.lastMove >= STILL_BEFORE_RELEASE_MS
-    this.coasting = !this.reducedMotion && !still && this.rate !== 0
-    if (!this.coasting) this.rate = 0
-  }
-
+  // Linear in position: motionAt already eases between presets.
   advance(now: number): number {
     const frameMs = this.lastFrame === null ? 0 : Math.min(MAX_FRAME_MS, Math.max(0, now - this.lastFrame))
     this.lastFrame = now
-    if (this.coasting) {
-      if (this.reducedMotion) {
-        this.coasting = false
-        this.rate = 0
-        return this.position
+    if (this.easing) {
+      const progress = this.reducedMotion || this.easeMs <= 0 ? 1 : Math.min(1, (now - this.easeStart) / this.easeMs)
+      this.position = this.easeFrom + (this.target - this.easeFrom) * progress
+      if (progress >= 1) {
+        this.position = this.target
+        this.easing = false
+        this.heldMs = 0
       }
-      this.position += this.rate * frameMs
-      this.rate *= Math.exp(-frameMs / COAST_TAU_MS)
-      if (Math.abs(this.rate) < MIN_COAST_RATE) {
-        this.coasting = false
-        this.rate = 0
-      }
+    } else if (!this.reducedMotion) {
+      this.heldMs += frameMs
+      if (this.heldMs >= HOLD_MS) this.easeTo(this.target + 1, DRIFT_EASE_MS, false, now)
     }
     return this.position
+  }
+
+  // One step from the tag or its arrows: +1 forward, -1 back, starting now.
+  // From a drift ease it goes to the next whole preset that way; the drift
+  // then rests there for a full HOLD_MS.
+  step(direction: 1 | -1, now: number): void {
+    const epsilon = 1e-9
+    const target =
+      this.easing && this.stepped
+        ? this.target + direction
+        : direction > 0
+          ? Math.floor(this.position + epsilon) + 1
+          : Math.ceil(this.position - epsilon) - 1
+    this.easeTo(target, this.reducedMotion ? 0 : STEP_EASE_MS, true, now)
+  }
+
+  private easeTo(target: number, easeMs: number, stepped: boolean, now: number): void {
+    this.target = target
+    this.easeFrom = this.position
+    this.easeStart = now
+    this.easeMs = easeMs
+    this.easing = true
+    this.stepped = stepped
+    this.heldMs = 0
   }
 }

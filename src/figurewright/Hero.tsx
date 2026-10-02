@@ -106,8 +106,8 @@ export default function Hero() {
     return colorAt(stopsRef.current, position)
   }, [])
 
-  // Also called by Waves once per frame. Reduced motion keeps the pattern's
-  // shape but not its flow, as before the pattern could change.
+  // Also called by Waves once per frame; the drift and the tag's steps land
+  // here. Reduced motion keeps the pattern's shape but not its flow.
   const waveMotion = useCallback(() => {
     const position = patternDrive.advance(performance.now())
     const label = patternLabel(position)
@@ -314,12 +314,35 @@ export default function Hero() {
           <span className="color-swatch" style={{ background: stop.hex }} aria-hidden="true" />
           {stop.label} · {stop.name}
         </p>
-        <p className="hero-tag pattern-tag">
-          <span className="pattern-icon" aria-hidden="true">
-            ≈
-          </span>
-          {pattern}
-        </p>
+        <div className="pattern-tags" role="group" aria-label="Wave pattern">
+          <button
+            type="button"
+            className="hero-tag pattern-arrow"
+            aria-label="Previous wave pattern"
+            onClick={() => patternDrive.step(-1, performance.now())}
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            className="hero-tag pattern-tag"
+            aria-label={`Wave pattern: ${pattern}. Next pattern`}
+            onClick={() => patternDrive.step(1, performance.now())}
+          >
+            <span className="pattern-icon" aria-hidden="true">
+              ≈
+            </span>
+            {pattern}
+          </button>
+          <button
+            type="button"
+            className="hero-tag pattern-arrow"
+            aria-label="Next wave pattern"
+            onClick={() => patternDrive.step(1, performance.now())}
+          >
+            ›
+          </button>
+        </div>
       </div>
       <p id="hero-hint" className="hero-hint">
         {hint}

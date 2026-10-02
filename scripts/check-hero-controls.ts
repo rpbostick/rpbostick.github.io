@@ -1,5 +1,6 @@
 // Checks the hero's pointer controls: the middle-click toggle, click versus
-// drag, where a drag may start, the pointer the waves follow, the drag gain and direction, momentum and the pattern tag.
+// drag, where a drag may start, the pointer the waves follow, its momentum,
+// the pattern drift, steps from the pattern tag and the tag's label.
 // Run: node scripts/check-hero-controls.ts
 import assert from 'node:assert/strict'
 import {
@@ -14,22 +15,29 @@ import {
   WavesPointer,
 } from '../src/figurewright/heroInput.ts'
 import {
-  COAST_TAU_MS,
-  dominantAxis,
-  dragDelta,
-  dragGain,
-  GAIN_SPEED,
-  MAX_GAIN,
+  DRIFT_EASE_MS,
+  HOLD_MS,
   motionAt,
   PatternDrive,
   patternLabel,
-  PIXELS_PER_PRESET,
   PRESETS,
-  STILL_BEFORE_RELEASE_MS,
+  STEP_EASE_MS,
 } from '../src/figurewright/patternDrive.ts'
 
 const RIGHT_BUTTON = 2
 const FRAME_MS = 16
+
+// Draws frames FRAME_MS apart for `durationMs` from `start`, as the Waves loop
+// would; returns the last frame's time.
+function runFrames(drive: PatternDrive, start: number, durationMs: number): number {
+  let now = start
+  drive.advance(now)
+  for (const end = start + durationMs; now + FRAME_MS <= end; ) {
+    now += FRAME_MS
+    drive.advance(now)
+  }
+  return now
+}
 
 // A stand-in for an element whose ancestors match `selector`: `closest`
 // finds it when it is one of the comma-separated selectors asked for.
@@ -154,73 +162,96 @@ const checks: [string, () => void][] = [
     },
   ],
   [
-    'gain is 1 at rest, rises with the square of speed, and is capped',
+    'the drift rests on a preset for HOLD_MS, then eases to the next over DRIFT_EASE_MS',
     () => {
-      close(dragGain(0), 1)
-      close(dragGain(GAIN_SPEED), 2)
-      close(dragGain(2 * GAIN_SPEED), 5)
-      assert.equal(dragGain(100 * GAIN_SPEED), MAX_GAIN)
+      const drive = new PatternDrive()
+      let now = runFrames(drive, 0, HOLD_MS - FRAME_MS)
+      assert.equal(drive.current, 0, 'still resting just before the hold ends')
+      now = runFrames(drive, now, 2 * FRAME_MS)
+      assert.ok(drive.current > 0 && drive.current < 0.1, `easing at ${drive.current}`)
+      now = runFrames(drive, now, DRIFT_EASE_MS / 2)
+      assert.ok(Math.abs(drive.current - 0.5) < 0.02, `halfway at ${drive.current}`)
+      runFrames(drive, now, DRIFT_EASE_MS)
+      assert.equal(drive.current, 1)
     },
   ],
   [
-    'a slow drag moves one preset per PIXELS_PER_PRESET; a fast one further',
+    'the drift passes every preset and wraps back to the first',
     () => {
-      // 1 px per 100 ms is a crawl: gain barely above 1.
-      let slow = 0
-      for (let move = 0; move < PIXELS_PER_PRESET; move++) slow += dragDelta(1, 0, 'x', 100)
-      assert.ok(Math.abs(slow - 1) < 0.001, `slow ${slow}`)
-      const fast = dragDelta(PIXELS_PER_PRESET, 0, 'x', PIXELS_PER_PRESET / (2 * GAIN_SPEED))
-      close(fast, 5, 'fast')
+      const drive = new PatternDrive()
+      const seen: string[] = []
+      let now = 0
+      for (let preset = 0; preset <= PRESETS.length; preset++) {
+        seen.push(patternLabel(drive.current))
+        now = runFrames(drive, now, HOLD_MS + DRIFT_EASE_MS + 10 * FRAME_MS)
+      }
+      assert.deepEqual(seen, [...PRESETS.map((preset) => preset.name), PRESETS[0].name])
     },
   ],
   [
-    'right and down go forward, left and up back, along the dominant axis',
-    () => {
-      assert.equal(dominantAxis(10, 3), 'x')
-      assert.equal(dominantAxis(-2, -9), 'y')
-      assert.ok(dragDelta(10, 0, 'x', 16) > 0)
-      assert.ok(dragDelta(-10, 0, 'x', 16) < 0)
-      assert.ok(dragDelta(0, 10, 'y', 16) > 0)
-      assert.ok(dragDelta(0, -10, 'y', 16) < 0)
-      assert.equal(dragDelta(0, 10, 'x', 16), 0, 'the cross axis does not move the pattern')
-    },
-  ],
-  [
-    'a flick coasts on after release, forward, and comes to rest',
+    'a long pause does not run the hold out unseen',
     () => {
       const drive = new PatternDrive()
       drive.advance(0)
-      drive.grab(0)
-      for (let now = FRAME_MS; now <= 10 * FRAME_MS; now += FRAME_MS) drive.drag(0.02, FRAME_MS, now)
-      drive.release(10 * FRAME_MS)
-      const released = drive.current
-      drive.advance(10 * FRAME_MS)
-      let position = released
-      for (let now = 11 * FRAME_MS; now < 10 * FRAME_MS + 20 * COAST_TAU_MS; now += FRAME_MS) {
-        position = drive.advance(now)
-      }
-      assert.ok(position > released + 0.05, `coasted ${position - released}`)
-      assert.equal(drive.advance(10 * FRAME_MS + 21 * COAST_TAU_MS), position, 'at rest')
+      drive.advance(10 * HOLD_MS)
+      assert.equal(drive.current, 0)
     },
   ],
   [
-    'no momentum after a held-still release or under reduced motion',
+    'a step eases to the next preset at once and restarts the hold',
     () => {
-      const held = new PatternDrive()
-      held.advance(0)
-      held.grab(0)
-      held.drag(0.2, FRAME_MS, FRAME_MS)
-      held.release(FRAME_MS + STILL_BEFORE_RELEASE_MS)
-      assert.equal(held.advance(1000), 0.2)
-
-      const reduced = new PatternDrive()
-      reduced.reducedMotion = true
-      reduced.advance(0)
-      reduced.grab(0)
-      reduced.drag(0.2, FRAME_MS, FRAME_MS)
-      assert.equal(reduced.current, 0.2, 'the drag itself still moves the pattern')
-      reduced.release(FRAME_MS)
-      assert.equal(reduced.advance(1000), 0.2)
+      const drive = new PatternDrive()
+      let now = runFrames(drive, 0, HOLD_MS - 1000)
+      drive.step(1, now)
+      now = runFrames(drive, now, STEP_EASE_MS + FRAME_MS)
+      assert.equal(drive.current, 1)
+      now = runFrames(drive, now, HOLD_MS - 2 * FRAME_MS)
+      assert.equal(drive.current, 1, 'rests a full hold after the step')
+      runFrames(drive, now, 4 * FRAME_MS)
+      assert.ok(drive.current > 1, `drifting on at ${drive.current}`)
+    },
+  ],
+  [
+    'a step mid-drift goes to the preset it was easing toward; quick steps add up',
+    () => {
+      const drive = new PatternDrive()
+      let now = runFrames(drive, 0, HOLD_MS + DRIFT_EASE_MS / 2)
+      drive.step(1, now)
+      now = runFrames(drive, now, STEP_EASE_MS + FRAME_MS)
+      assert.equal(drive.current, 1)
+      drive.step(1, now)
+      now = runFrames(drive, now, 2 * FRAME_MS)
+      drive.step(1, now)
+      runFrames(drive, now, STEP_EASE_MS + FRAME_MS)
+      assert.equal(drive.current, 3)
+    },
+  ],
+  [
+    'the back arrow goes back, across the seam to the last preset',
+    () => {
+      const drive = new PatternDrive()
+      drive.advance(0)
+      drive.step(-1, 0)
+      runFrames(drive, 0, STEP_EASE_MS + FRAME_MS)
+      assert.equal(patternLabel(drive.current), PRESETS[PRESETS.length - 1].name)
+      const mid = new PatternDrive()
+      const now = runFrames(mid, 0, HOLD_MS + DRIFT_EASE_MS / 2)
+      mid.step(-1, now)
+      runFrames(mid, now, STEP_EASE_MS + FRAME_MS)
+      assert.equal(mid.current, 0, 'back from mid-drift returns to the preset it left')
+    },
+  ],
+  [
+    'reduced motion: no drift, and a step lands at once',
+    () => {
+      const drive = new PatternDrive()
+      drive.reducedMotion = true
+      const now = runFrames(drive, 0, 3 * (HOLD_MS + DRIFT_EASE_MS))
+      assert.equal(drive.current, 0)
+      drive.step(1, now)
+      assert.equal(drive.advance(now), 1)
+      drive.step(-1, now)
+      assert.equal(drive.advance(now), 0)
     },
   ],
   [
