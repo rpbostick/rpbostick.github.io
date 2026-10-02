@@ -11,6 +11,7 @@ Changes from the original:
 5. `Waves.tsx`: a `motion` prop, a getter called once per frame in `movePoints`, whose `waveSpeedX`, `waveSpeedY`, `waveAmpX`, `waveAmpY`, `friction`, `tension` and `maxCursorMove` override the matching props, so the pattern can change continuously without re-rendering or re-initializing the waves.
 6. `Waves.tsx`: the noise offset is accumulated each frame (frame time × speed, with a frame counted as at most 100 ms) instead of computed as `time * waveSpeedX` and `time * waveSpeedY`, so changing the speed changes how fast the pattern flows rather than jumping it elsewhere in the noise.
 7. `Waves.tsx`: a `paused` prop. While it is true, the loop draws one more frame and stops; every re-render and every resize draws one frame, and turning it off starts the loop again. The frame after a pause counts as the first, so the pattern does not jump.
+8. `Waves.tsx`: a `pointer` prop, a getter called once per frame in `tick` that returns the pointer in client coordinates or null. When it is given, the `mousemove`/`touchmove` listeners of change 3 are not attached and the waves follow only what the getter returns; a null resets the mouse's `set` flag, so the ripples settle as when the pointer leaves and the next pointer starts where it is instead of jumping from the last one.
 
 ## Aurora
 

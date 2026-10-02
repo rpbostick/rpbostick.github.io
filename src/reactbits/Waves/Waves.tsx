@@ -133,6 +133,10 @@ interface WavesProps {
   // Like a lineColor getter: called once per frame, and what it returns
   // overrides the matching props, so the pattern can change continuously.
   motion?: () => Motion;
+  // Replaces the mousemove/touchmove listeners: called once per frame, it
+  // returns the pointer in client coordinates, or null when there is none to
+  // follow, which settles the ripples as when the pointer leaves.
+  pointer?: () => { x: number; y: number } | null;
   backgroundColor?: string;
   waveSpeedX?: number;
   waveSpeedY?: number;
@@ -162,6 +166,7 @@ const Waves: React.FC<WavesProps> = ({
   tension = 0.005,
   maxCursorMove = 100,
   motion,
+  pointer,
   paused = false,
   style = {},
   className = ''
@@ -207,6 +212,7 @@ const Waves: React.FC<WavesProps> = ({
     yGap
   });
   const motionRef = useRef(motion);
+  const pointerRef = useRef(pointer);
   const frameIdRef = useRef<number | null>(null);
   const pausedRef = useRef(paused);
   const requestFrameRef = useRef<(() => void) | null>(null);
@@ -214,6 +220,10 @@ const Waves: React.FC<WavesProps> = ({
   useEffect(() => {
     motionRef.current = motion;
   }, [motion]);
+
+  useEffect(() => {
+    pointerRef.current = pointer;
+  }, [pointer]);
 
   useEffect(() => {
     pausedRef.current = paused;
@@ -357,7 +367,13 @@ const Waves: React.FC<WavesProps> = ({
     function tick(t: number) {
       if (!container) return;
       const mouse = mouseRef.current;
-      mouse.sx += (mouse.x - mouse.sx) * 0.1;
+      if (pointerRef.current) {
+        const point = pointerRef.current();
+        // The next pointer starts afresh where it is, not with a jump from here.
+        if (point) updateMouse(point.x, point.y);
+        else mouse.set = false;
+      }
+      mouse.sx +=(mouse.x - mouse.sx) * 0.1;
       mouse.sy += (mouse.y - mouse.sy) * 0.1;
       const dx = mouse.x - mouse.lx,
         dy = mouse.y - mouse.ly;
@@ -417,6 +433,7 @@ const Waves: React.FC<WavesProps> = ({
       if (running) return;
       running = true;
       frameIdRef.current = requestAnimationFrame(tick);
+      if (pointerRef.current) return;
       window.addEventListener('mousemove', onMouseMove);
       window.addEventListener('touchmove', onTouchMove, { passive: false });
     }

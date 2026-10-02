@@ -10,6 +10,12 @@
   padding: 5.25rem 1.25rem calc(var(--strip-height) + 3.5rem);
   overflow: hidden;
   background: var(--bg);
+  /* Bare background grabs: a drag there reshapes the waves. The content
+     (CONTENT_SELECTOR in heroInput.ts) does not start a drag. */
+  cursor: grab;
+}
+
+.hero :is(.hero-text, .hero-tag, .hero-hint, [data-solid]) {
   cursor: pointer;
 }
 
@@ -23,7 +29,7 @@
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
-.hero-active {
+.hero-active :is(.hero-text, .hero-tag, .hero-hint, [data-solid]) {
   cursor: ns-resize;
 }
 
@@ -36,7 +42,9 @@
   touch-action: none;
 }
 
-.hero-dragging {
+/* Two classes, so it outranks the content cursors above. */
+.hero.hero-dragging,
+.hero.hero-dragging * {
   cursor: grabbing;
   user-select: none;
   -webkit-user-select: none;
