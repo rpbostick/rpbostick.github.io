@@ -17,6 +17,7 @@ npm run lint
 | `/figurewright/` | `figurewright/index.html` | `src/figurewright/`, images in `public/figurewright/` |
 | `/colorwright/` | `public/colorwright/index.html` (the exported demo) | host bundle `src/host/colorwright.tsx` |
 | `/skywright/` | `public/skywright/index.html` (the exported demo) | host bundle `src/host/skywright.tsx` |
+| `/chargen/` | `public/chargen/index.html` (a self-contained page, unlisted on the index) | built in its own repo; copied here unchanged |
 
 Shared styles and hooks live in `src/shared/`. A new page needs its own `<name>/index.html`, a `src/<name>/main.tsx`, and an entry in `build.rollupOptions.input` in `vite.config.ts`.
 
