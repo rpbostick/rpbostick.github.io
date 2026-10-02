@@ -107,6 +107,11 @@ interface Mouse {
   set: boolean;
 }
 
+interface Displacement {
+  x: ArrayLike<number>;
+  y: ArrayLike<number>;
+}
+
 // A getter is called once per frame, so the color can change without re-rendering.
 type LineColor = string | (() => string);
 
@@ -137,6 +142,11 @@ interface WavesProps {
   // returns the pointer in client coordinates, or null when there is none to
   // follow, which settles the ripples as when the pointer leaves.
   pointer?: () => { x: number; y: number } | null;
+  // Called once per frame after the points move, with the grid (each line's
+  // points, in container coordinates, with this frame's wave offset) and the
+  // frame time. It returns an extra offset for every point, indexed
+  // line × points per line + point, or null for none.
+  displacement?: (lines: readonly (readonly Point[])[], time: number) => Displacement | null;
   backgroundColor?: string;
   waveSpeedX?: number;
   waveSpeedY?: number;
@@ -167,6 +177,7 @@ const Waves: React.FC<WavesProps> = ({
   maxCursorMove = 100,
   motion,
   pointer,
+  displacement,
   paused = false,
   style = {},
   className = ''
@@ -213,6 +224,7 @@ const Waves: React.FC<WavesProps> = ({
   });
   const motionRef = useRef(motion);
   const pointerRef = useRef(pointer);
+  const displacementRef = useRef(displacement);
   const frameIdRef = useRef<number | null>(null);
   const pausedRef = useRef(paused);
   const requestFrameRef = useRef<(() => void) | null>(null);
@@ -224,6 +236,10 @@ const Waves: React.FC<WavesProps> = ({
   useEffect(() => {
     pointerRef.current = pointer;
   }, [pointer]);
+
+  useEffect(() => {
+    displacementRef.current = displacement;
+  }, [displacement]);
 
   useEffect(() => {
     pausedRef.current = paused;
@@ -294,6 +310,8 @@ const Waves: React.FC<WavesProps> = ({
     const phase = { x: 0, y: 0, last: null as number | null };
     // A longer gap (a paused, off-screen loop) counts as this long.
     const MAX_FRAME_MS = 100;
+    // This frame's extra offsets from the displacement getter.
+    let shift: Displacement | null = null;
 
     function movePoints(time: number) {
       const lines = linesRef.current;
@@ -334,11 +352,14 @@ const Waves: React.FC<WavesProps> = ({
           p.cursor.y = Math.min(maxCursorMove, Math.max(-maxCursorMove, p.cursor.y));
         });
       });
+      shift = displacementRef.current ? displacementRef.current(lines, time) : null;
     }
 
-    function moved(point: Point, withCursor = true): { x: number; y: number } {
-      const x = point.x + point.wave.x + (withCursor ? point.cursor.x : 0);
-      const y = point.y + point.wave.y + (withCursor ? point.cursor.y : 0);
+    function moved(point: Point, withCursor = true, index = -1): { x: number; y: number } {
+      const shiftX = withCursor && shift && index >= 0 ? shift.x[index] : 0;
+      const shiftY = withCursor && shift && index >= 0 ? shift.y[index] : 0;
+      const x = point.x + point.wave.x + (withCursor ? point.cursor.x : 0) + shiftX;
+      const y = point.y + point.wave.y + (withCursor ? point.cursor.y : 0) + shiftY;
       return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
     }
 
@@ -350,12 +371,12 @@ const Waves: React.FC<WavesProps> = ({
       ctx.beginPath();
       const { lineColor } = configRef.current;
       ctx.strokeStyle = typeof lineColor === 'function' ? lineColor() : lineColor;
-      linesRef.current.forEach(points => {
+      linesRef.current.forEach((points, line) => {
         let p1 = moved(points[0], false);
         ctx.moveTo(p1.x, p1.y);
         points.forEach((p, idx) => {
           const isLast = idx === points.length - 1;
-          p1 = moved(p, !isLast);
+          p1 = moved(p, !isLast, line * points.length + idx);
           const p2 = moved(points[idx + 1] || points[points.length - 1], !isLast);
           ctx.lineTo(p1.x, p1.y);
           if (isLast) ctx.moveTo(p2.x, p2.y);

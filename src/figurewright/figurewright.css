@@ -10,7 +10,7 @@
   padding: 5.25rem 1.25rem calc(var(--strip-height) + 3.5rem);
   overflow: hidden;
   background: var(--bg);
-  /* Bare background grabs: a drag there reshapes the waves. The content
+  /* Bare background grabs: a drag there stirs the waves. The content
      (CONTENT_SELECTOR in heroInput.ts) does not start a drag. */
   cursor: grab;
 }
@@ -33,7 +33,7 @@
   cursor: ns-resize;
 }
 
-/* While active a finger drag reshapes the waves instead of scrolling. Set on
+/* While active a finger drag stirs the waves instead of scrolling. Set on
    the parts rather than the hero, which would also stop the strip scrolling
    (touch-action applies to everything inside); inactive, swipes scroll. */
 .hero-active .waves,

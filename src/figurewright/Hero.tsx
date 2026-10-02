@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react'
 import Waves from '../reactbits/Waves/Waves.tsx'
 import { useAnimations } from '../shared/motion.ts'
+import { RippleField, rippleRadius, type GridPoint } from '../shared/rippleField.ts'
 import { useTheme } from '../shared/theme.ts'
 import { useMediaQuery } from '../shared/useMediaQuery.ts'
 import { usePageVisible } from '../shared/usePageVisible.ts'
 import { ColorDrive, wheelTicks } from './colorDrive.ts'
 import { activeAfterPress, clickActivates, isDrag, MIDDLE_BUTTON, onContent, startsDrag, WavesPointer } from './heroInput.ts'
 import { colorAt, heroBackgrounds, nearestStopIndex, stopsByTheme } from './palette.ts'
-import { dominantAxis, dragDelta, motionAt, PatternDrive, patternLabel, type Axis } from './patternDrive.ts'
+import { motionAt, PatternDrive, patternLabel } from './patternDrive.ts'
 
 const SPLASH = { src: '/figurewright/splash-easing.svg', width: 1355, height: 764 }
 
@@ -16,6 +17,12 @@ const SPLASH = { src: '/figurewright/splash-easing.svg', width: 1355, height: 76
 const drive = new ColorDrive()
 const patternDrive = new PatternDrive()
 const wavesPointer = new WavesPointer()
+const rippleField = new RippleField()
+
+// Deliberate: Waves' own cursor push stays off. The ripple field carries the
+// pointer's pull and spreads it; the push would add a second one that does
+// not, and without a pointer getter Waves would follow hovering instead.
+const noWavesPointer = () => null
 
 function onStrip(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest('.hero-strip') !== null
@@ -25,11 +32,8 @@ interface Drag {
   pointerId: number
   startX: number
   startY: number
-  lastX: number
-  lastY: number
-  lastTime: number
-  // Locked when the pointer first passes the drag threshold.
-  axis: Axis | null
+  // Set when the pointer first passes the drag threshold.
+  moved: boolean
 }
 
 export default function Hero() {
@@ -66,15 +70,29 @@ export default function Hero() {
     wavesPointer.reducedMotion = reducedMotion
   }, [reducedMotion])
 
-  // Called by Waves once per frame. The pointer is kept relative to the hero,
-  // whose edges the coast bounces off; Waves wants client coordinates.
-  const wavesPointerNow = useCallback(() => {
-    const hero = heroRef.current
-    if (!hero) return null
-    const rect = hero.getBoundingClientRect()
-    const point = wavesPointer.at(performance.now(), { left: 0, top: 0, right: rect.width, bottom: rect.height })
-    return point && { x: point.x + rect.left, y: point.y + rect.top }
-  }, [])
+  // Called by Waves once per frame: the dragged or coasting pointer stirs the
+  // ripple field, whose offsets Waves draws. The waves fill the hero, so
+  // hero-relative coordinates are the grid's. Reduced motion has no ripples.
+  const wavesDisplacement = useCallback(
+    (lines: readonly (readonly GridPoint[])[], time: number) => {
+      const hero = heroRef.current
+      if (!hero || reducedMotion) {
+        rippleField.reset()
+        return null
+      }
+      const rect = hero.getBoundingClientRect()
+      // performance.now(), like the drag's samples: the frame time can be
+      // earlier than the release.
+      const pointer = wavesPointer.at(performance.now(), { left: 0, top: 0, right: rect.width, bottom: rect.height })
+      return rippleField.step(lines, {
+        pointer,
+        stroke: wavesPointer.stroke,
+        now: time,
+        radius: rippleRadius(rect.width, rect.height),
+      })
+    },
+    [reducedMotion],
+  )
 
   // Called by Waves once per frame; the tag re-renders only when the nearest
   // stop changes.
@@ -120,51 +138,25 @@ export default function Hero() {
       draggedRef.current = false
       const fromContent = !(event.target instanceof Element) || onContent(event.target)
       if (!startsDrag(event.button, event.pointerType, activeRef.current, fromContent)) return
-      const now = performance.now()
-      drag = {
-        pointerId: event.pointerId,
-        startX: event.clientX,
-        startY: event.clientY,
-        lastX: event.clientX,
-        lastY: event.clientY,
-        lastTime: now,
-        axis: null,
-      }
-      patternDrive.grab(now)
+      drag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, moved: false }
       const point = heroPoint(event)
-      wavesPointer.grab(point.x, point.y, now)
+      wavesPointer.grab(point.x, point.y, performance.now())
       setDragging(true)
     }
     function onPointerMove(event: PointerEvent) {
       if (!drag || event.pointerId !== drag.pointerId) return
       const point = heroPoint(event)
       wavesPointer.move(point.x, point.y, performance.now())
-      if (drag.axis === null) {
-        const fromStartX = event.clientX - drag.startX
-        const fromStartY = event.clientY - drag.startY
-        if (!isDrag(fromStartX, fromStartY)) return
-        drag.axis = dominantAxis(fromStartX, fromStartY)
-        draggedRef.current = true
-        // Captured only once it is a drag, so a plain click keeps its target.
-        hero?.setPointerCapture(event.pointerId)
-        window.getSelection()?.removeAllRanges()
-      }
-      // The travel up to the threshold counts too (last = start until now).
-      const now = performance.now()
-      const dtMs = now - drag.lastTime
-      patternDrive.drag(
-        dragDelta(event.clientX - drag.lastX, event.clientY - drag.lastY, drag.axis, dtMs),
-        dtMs,
-        now,
-      )
-      drag.lastX = event.clientX
-      drag.lastY = event.clientY
-      drag.lastTime = now
+      if (drag.moved || !isDrag(event.clientX - drag.startX, event.clientY - drag.startY)) return
+      drag.moved = true
+      draggedRef.current = true
+      // Captured only once it is a drag, so a plain click keeps its target.
+      hero?.setPointerCapture(event.pointerId)
+      window.getSelection()?.removeAllRanges()
     }
     function onPointerEnd(event: PointerEvent) {
       if (!drag || event.pointerId !== drag.pointerId) return
       const now = performance.now()
-      if (drag.axis !== null) patternDrive.release(now)
       // A cancelled pointer (the browser took over the gesture) was not flung.
       if (event.type === 'pointercancel') wavesPointer.cancel()
       else wavesPointer.release(now)
@@ -263,8 +255,8 @@ export default function Hero() {
   const stop = stops[stopIndex]
   const hint = active
     ? coarsePointer
-      ? 'Drag to reshape the waves · tap outside to leave'
-      : 'Scroll to shift colors · drag to reshape the waves · middle-click or Esc to leave'
+      ? 'Drag to stir the waves · tap outside to leave'
+      : 'Scroll to shift colors · drag to stir the waves · middle-click or Esc to leave'
     : coarsePointer
       ? 'Tap to play with the colors'
       : 'Click or middle-click to play with the colors'
@@ -288,11 +280,12 @@ export default function Hero() {
       <Waves
         lineColor={lineColor}
         motion={waveMotion}
-        pointer={wavesPointerNow}
+        pointer={noWavesPointer}
+        displacement={wavesDisplacement}
         backgroundColor={heroBackgrounds[theme]}
         // With animations off the waves hold still, except while someone is
-        // playing with the hero: stepped colors and dragged patterns land
-        // instantly then, but the frames still have to be drawn.
+        // playing with the hero: stepped colors land instantly then, but the
+        // frames still have to be drawn.
         paused={!pageVisible || (reducedMotion && !active)}
         xGap={12}
         yGap={36}
