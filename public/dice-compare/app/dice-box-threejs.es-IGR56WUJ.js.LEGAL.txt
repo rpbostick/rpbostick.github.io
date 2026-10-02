@@ -1,0 +1,8 @@
+Bundled license information:
+
+@3d-dice/dice-box-threejs/dist/dice-box-threejs.es.js:
+  /**
+   * @license
+   * Copyright 2010-2022 Three.js Authors
+   * SPDX-License-Identifier: MIT
+   */

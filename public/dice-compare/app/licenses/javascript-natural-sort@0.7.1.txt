@@ -1,0 +1,12 @@
+javascript-natural-sort 0.7.1
+Licence: MIT
+Source: https://github.com/Bill4Time/javascript-natural-sort
+
+This package ships no licence file. Its licence is MIT; the terms are at https://opensource.org/license/mit and the copyright holders are named at https://github.com/Bill4Time/javascript-natural-sort.
+
+Notice from naturalSort.js:
+
+/*
+ * Natural Sort algorithm for Javascript - Version 0.7 - Released under MIT license
+ * Author: Jim Palmer (based on chunking idea from Dave Koelle)
+ */

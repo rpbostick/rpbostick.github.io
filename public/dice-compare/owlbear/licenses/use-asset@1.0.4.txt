@@ -1,0 +1,5 @@
+use-asset 1.0.4
+Licence: MIT
+Source: https://github.com/pmndrs/use-asset
+
+This package ships no licence file. Its licence is MIT; the terms are at https://opensource.org/license/mit and the copyright holders are named at https://github.com/pmndrs/use-asset.

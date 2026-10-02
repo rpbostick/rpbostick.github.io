@@ -1,0 +1,5 @@
+@react-three/rapier 1.1.1
+Licence: MIT (stated by the upstream repository; the package declares none)
+Source: https://github.com/pmndrs/react-three-rapier/tree/master/packages/react-three-rapier
+
+This package ships no licence file. Its licence is MIT (stated by the upstream repository; the package declares none); the terms are at https://opensource.org/license/mit and the copyright holders are named at https://github.com/pmndrs/react-three-rapier/tree/master/packages/react-three-rapier.

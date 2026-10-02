@@ -1,0 +1,37 @@
+{
+  "note": "bytes on disk in dist/, gzipBytes = each file gzip -9; written by scripts/measure-sizes.mjs",
+  "rollers": {
+    "dicebox": {
+      "files": 42,
+      "bytes": 6609514,
+      "gzipBytes": 3791855
+    },
+    "threejs": {
+      "files": 114,
+      "bytes": 2685505,
+      "gzipBytes": 2079083
+    },
+    "light2d": {
+      "files": 1,
+      "bytes": 718375,
+      "gzipBytes": 204808
+    },
+    "owlbear": {
+      "files": 72,
+      "bytes": 11069842,
+      "gzipBytes": 7721412
+    }
+  },
+  "shared": {
+    "engine": {
+      "files": 1,
+      "bytes": 714986,
+      "gzipBytes": 204808
+    },
+    "page": {
+      "files": 5,
+      "bytes": 19337,
+      "gzipBytes": 12238
+    }
+  }
+}

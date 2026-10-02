@@ -20,6 +20,7 @@ npm run lint
 | `/chargen/` | `public/chargen/index.html` (the character generator's public build: self-contained, comments stripped, leak-checked; unlisted on the index) | built in its own repo; copied here unchanged |
 | `/chargen2/` | `public/chargen2/index.html` | redirects to `/chargen/`, keeping the link's seed and options |
 | `/chargen-beta/` | `public/chargen-beta/index.html` (the character generator's earlier free-form layout; unlisted) | built in its own repo; copied here unchanged |
+| `/dice-compare/` | `public/dice-compare/` (the dice roller comparison page; unlisted) | built in its own repo (`bash build.sh`); copied here unchanged |
 
 Shared styles and hooks live in `src/shared/`. A new page needs its own `<name>/index.html`, a `src/<name>/main.tsx`, and an entry in `build.rollupOptions.input` in `vite.config.ts`.
 

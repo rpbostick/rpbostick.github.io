@@ -1,0 +1,5 @@
+@react-three/fiber 8.13.4
+Licence: MIT
+Source: https://github.com/pmndrs/react-three-fiber
+
+This package ships no licence file. Its licence is MIT; the terms are at https://opensource.org/license/mit and the copyright holders are named at https://github.com/pmndrs/react-three-fiber.

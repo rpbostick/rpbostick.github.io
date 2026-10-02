@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dice roller comparison: four browser dice rollers</title>
+  <link rel="stylesheet" href="app/main.css">
+  <script type="module" src="app/main.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Dice rollers, side by side</h1>
+    <p>Four browser dice rollers with the same World of Dungeons rolls. Each tab loads its roller on the first roll, so the footer's load time is a cold start.</p>
+    <nav id="tabs" role="tablist"></nav>
+  </header>
+
+  <main>
+    <section id="controls" aria-label="Rolls">
+      <h2>Rolls</h2>
+      <div class="row">
+        <label>Attribute
+          <select id="attribute">
+            <option value="-1">−1</option>
+            <option value="0" selected>+0</option>
+            <option value="1">+1</option>
+            <option value="2">+2</option>
+            <option value="3">+3</option>
+          </select>
+        </label>
+        <button id="roll-wod" class="primary">Roll 2d6 + attribute</button>
+      </div>
+      <div class="row">
+        <label>Bonus <input id="damage-bonus" type="number" min="0" max="20" value="0"></label>
+        <button id="roll-damage">Roll d6 damage</button>
+      </div>
+      <div class="row">
+        <label>Hit dice <input id="hit-dice" type="number" min="1" max="10" value="2"></label>
+        <button id="roll-hit">Roll Nd6, keep highest</button>
+      </div>
+      <form class="row" id="free-form">
+        <label>Notation <input id="free-notation" value="3d6+1" spellcheck="false"></label>
+        <button type="submit">Roll</button>
+      </form>
+      <div class="row">
+        <label class="check"><input id="quick" type="checkbox"> Quick roll (no animation)</label>
+      </div>
+      <p id="quick-note" class="note"></p>
+
+      <h2>Customization</h2>
+      <div id="options"></div>
+      <h3>Cannot do</h3>
+      <ul id="cannot"></ul>
+    </section>
+
+    <section id="stage-column" aria-label="Tray">
+      <div id="result" aria-live="polite"><span class="placeholder">No roll yet</span></div>
+      <div id="stage"></div>
+      <footer id="roller-footer"></footer>
+    </section>
+
+    <section id="log-column" aria-label="Results log">
+      <h2>Results</h2>
+      <ol id="log" reversed></ol>
+    </section>
+  </main>
+
+  <footer id="site-footer">
+    This page: MIT (<a href="LICENSE">licence</a>) ·
+    <a href="THIRD_PARTY_LICENSES.txt">Third-party licences</a> ·
+    The Owlbear Rodeo dice page is GPL-3.0 (<a href="owlbear/owlbear-dice-source.zip">source code</a>)
+  </footer>
+</body>
+</html>

@@ -1,0 +1,172 @@
+Third-party software and assets in this site
+============================================
+
+The comparison page itself (index.html, app/main.js, app/main.css and the roller code
+bundled into them) is MIT, see LICENSE. Everything else below keeps its own licence;
+each licence text sits next to what it covers, at the path given.
+
+app/ (JavaScript bundled by esbuild; bundled licence comments are in app/*.LEGAL.txt)
+-------------------------------------------------------------------------------------
+- @3d-dice/dice-box 1.1.4, MIT, https://github.com/3d-dice/dice-box
+  licence text: app/licenses/3d-dice__dice-box@1.1.4.txt
+- @3d-dice/dice-box-threejs 0.0.12, MIT, https://github.com/3d-dice/dice-box-threejs
+  licence text: app/licenses/3d-dice__dice-box-threejs@0.0.12.txt
+- @babel/runtime 7.29.7, MIT, https://github.com/babel/babel
+  licence text: app/licenses/babel__runtime@7.29.7.txt
+- @babylonjs/core 5.57.1, Apache-2.0, https://github.com/BabylonJS/Babylon.js (inside the prebuilt files of @3d-dice/dice-box)
+  licence text: app/licenses/babylonjs__core@5.57.1.txt
+- @babylonjs/loaders 5.57.1, Apache-2.0, https://github.com/BabylonJS/Babylon.js (a dependency of @3d-dice/dice-box; kept in case its prebuilt files include it)
+  licence text: app/licenses/babylonjs__loaders@5.57.1.txt
+- @babylonjs/materials 5.57.1, Apache-2.0, https://github.com/BabylonJS/Babylon.js (inside the prebuilt files of @3d-dice/dice-box)
+  licence text: app/licenses/babylonjs__materials@5.57.1.txt
+- @dice-roller/rpg-dice-roller 5.5.1, MIT, https://github.com/dice-roller/rpg-dice-roller
+  licence text: app/licenses/dice-roller__rpg-dice-roller@5.5.1.txt
+- cannon-es 0.20.0, MIT, https://github.com/pmndrs/cannon-es (inside the prebuilt files of @3d-dice/dice-box-threejs)
+  licence text: app/licenses/cannon-es@0.20.0.txt
+- complex.js 2.4.3, MIT, https://github.com/rawify/Complex.js
+  licence text: app/licenses/complex.js@2.4.3.txt
+- decimal.js 10.6.0, MIT, https://github.com/MikeMcl/decimal.js
+  licence text: app/licenses/decimal.js@10.6.0.txt
+- escape-latex 1.2.0, MIT, https://github.com/dangmai/escape-latex
+  licence text: app/licenses/escape-latex@1.2.0.txt
+- fraction.js 5.3.4, MIT, https://github.com/rawify/Fraction.js
+  licence text: app/licenses/fraction.js@5.3.4.txt
+- javascript-natural-sort 0.7.1, MIT, https://github.com/Bill4Time/javascript-natural-sort
+  licence text: app/licenses/javascript-natural-sort@0.7.1.txt
+- mathjs 14.9.1, Apache-2.0, https://github.com/josdejong/mathjs
+  licence text: app/licenses/mathjs@14.9.1.txt
+- random-js 2.1.0, MIT, https://github.com/ckknight/random-js (inside the prebuilt files of @dice-roller/rpg-dice-roller)
+  licence text: app/licenses/random-js@2.1.0.txt
+- seedrandom 3.0.5, MIT, https://github.com/davidbau/seedrandom
+  licence text: app/licenses/seedrandom@3.0.5.txt
+- three 0.143.0, MIT, https://github.com/mrdoob/three.js (inside the prebuilt files of @3d-dice/dice-box-threejs)
+  licence text: app/licenses/three@0.143.0.txt
+- tiny-emitter 2.1.0, MIT, https://github.com/scottcorgan/tiny-emitter
+  licence text: app/licenses/tiny-emitter@2.1.0.txt
+- typed-function 4.2.2, MIT, https://github.com/josdejong/typed-function
+  licence text: app/licenses/typed-function@4.2.2.txt
+
+assets/dice-box/ (runtime files of @3d-dice/dice-box)
+-----------------------------------------------------
+- @3d-dice/dice-box 1.1.4, MIT, https://github.com/3d-dice/dice-box: the default theme
+  (themes/default/). Licence text: assets/dice-box/LICENSE
+- ammo.js, zlib licence, https://github.com/kripken/ammo.js: ammo/ammo.wasm.wasm, the
+  WebAssembly build of the Bullet physics library shipped by dice-box (its JavaScript glue
+  is inside dice-box's physics worker in app/). Licence text: assets/dice-box/ammo/LICENSE
+- @3d-dice/dice-themes 0.2.1, MIT, https://github.com/3d-dice/dice-themes: themes/smooth,
+  gemstone, rust, diceOfRolling, wooden (textures, meshes and their package.json).
+  Licence text: assets/dice-box/themes/LICENSE
+
+assets/dice-box-threejs/ (textures and sounds from the package's public/ folder)
+--------------------------------------------------------------------------------
+- @3d-dice/dice-box-threejs 0.0.12, MIT, https://github.com/3d-dice/dice-box-threejs
+  Licence text: assets/dice-box-threejs/LICENSE
+  The textures (textures/) and sounds (sounds/) ship inside this MIT package. The package
+  says it is based on Major's 3D Dice (https://majorvictory.github.io/3DDiceRoller/),
+  itself based on Teall Dice; their original origin and licence could not be verified
+  beyond the package's own MIT licence.
+
+owlbear/ (separate page, GPL-3.0)
+---------------------------------
+- Owlbear Rodeo dice, GPL-3.0, https://github.com/owlbear-rodeo/dice, built with the
+  standalone files of this repository (also GPL-3.0). Licence text: owlbear/LICENSE.
+  Corresponding source: owlbear/owlbear-dice-source.zip (see owlbear/SOURCE.md).
+  Its models, textures, environment map and sounds (owlbear/assets/) come from the same
+  repository, which states no separate licence for them.
+- Packages compiled into owlbear/assets/index.*.js by its Vite build:
+  - @babel/runtime 7.23.9, MIT, https://github.com/babel/babel
+    licence text: owlbear/licenses/babel__runtime@7.23.9.txt
+  - @dimforge/rapier3d-compat 0.11.2, Apache-2.0, https://github.com/dimforge/rapier.js
+    licence text: owlbear/licenses/dimforge__rapier3d-compat@0.11.2.txt
+  - @emotion/cache 11.10.3, MIT, https://github.com/emotion-js/emotion/tree/main/packages/cache
+    licence text: owlbear/licenses/emotion__cache@11.10.3.txt
+  - @emotion/hash 0.9.0, MIT, https://github.com/emotion-js/emotion/tree/main/packages/hash
+    licence text: owlbear/licenses/emotion__hash@0.9.0.txt
+  - @emotion/is-prop-valid 1.2.0, MIT, https://github.com/emotion-js/emotion/tree/main/packages/is-prop-valid
+    licence text: owlbear/licenses/emotion__is-prop-valid@1.2.0.txt
+  - @emotion/memoize 0.8.0, MIT, https://github.com/emotion-js/emotion/tree/main/packages/memoize
+    licence text: owlbear/licenses/emotion__memoize@0.8.0.txt
+  - @emotion/react 11.10.4, MIT, https://github.com/emotion-js/emotion/tree/main/packages/react
+    licence text: owlbear/licenses/emotion__react@11.10.4.txt
+  - @emotion/serialize 1.1.0, MIT, https://github.com/emotion-js/emotion/tree/main/packages/serialize
+    licence text: owlbear/licenses/emotion__serialize@1.1.0.txt
+  - @emotion/sheet 1.2.0, MIT, https://github.com/emotion-js/emotion/tree/main/packages/sheet
+    licence text: owlbear/licenses/emotion__sheet@1.2.0.txt
+  - @emotion/styled 11.10.4, MIT, https://github.com/emotion-js/emotion/tree/main/packages/styled
+    licence text: owlbear/licenses/emotion__styled@11.10.4.txt
+  - @emotion/unitless 0.8.0, MIT, https://github.com/emotion-js/emotion/tree/main/packages/unitless
+    licence text: owlbear/licenses/emotion__unitless@0.8.0.txt
+  - @emotion/use-insertion-effect-with-fallbacks 1.0.0, MIT, https://github.com/emotion-js/emotion/tree/main/packages/use-insertion-effect-with-fallbacks
+    licence text: owlbear/licenses/emotion__use-insertion-effect-with-fallbacks@1.0.0.txt
+  - @emotion/utils 1.2.0, MIT, https://github.com/emotion-js/emotion/tree/main/packages/utils
+    licence text: owlbear/licenses/emotion__utils@1.2.0.txt
+  - @mui/material 5.10.9, MIT, https://github.com/mui/material-ui
+    licence text: owlbear/licenses/mui__material@5.10.9.txt
+  - @mui/private-theming 5.10.9, MIT, https://github.com/mui/material-ui
+    licence text: owlbear/licenses/mui__private-theming@5.10.9.txt
+  - @mui/styled-engine 5.10.8, MIT, https://github.com/mui/material-ui
+    licence text: owlbear/licenses/mui__styled-engine@5.10.8.txt
+  - @mui/system 5.10.9, MIT, https://github.com/mui/material-ui
+    licence text: owlbear/licenses/mui__system@5.10.9.txt
+  - @mui/utils 5.15.9, MIT, https://github.com/mui/material-ui
+    licence text: owlbear/licenses/mui__utils@5.15.9.txt
+  - @react-three/drei 9.77.4, MIT, https://github.com/pmndrs/drei
+    licence text: owlbear/licenses/react-three__drei@9.77.4.txt
+  - @react-three/fiber 8.13.4, MIT, https://github.com/pmndrs/react-three-fiber
+    licence text: owlbear/licenses/react-three__fiber@8.13.4.txt
+  - @react-three/rapier 1.1.1, MIT (stated by the upstream repository; the package declares none), https://github.com/pmndrs/react-three-rapier/tree/master/packages/react-three-rapier
+    licence text: owlbear/licenses/react-three__rapier@1.1.1.txt
+  - clsx 1.2.1, MIT, https://github.com/lukeed/clsx
+    licence text: owlbear/licenses/clsx@1.2.1.txt
+  - debounce 1.2.1, MIT, https://github.com/component/debounce
+    licence text: owlbear/licenses/debounce@1.2.1.txt
+  - fast-deep-equal 3.1.3, MIT, https://github.com/epoberezkin/fast-deep-equal
+    licence text: owlbear/licenses/fast-deep-equal@3.1.3.txt
+  - fflate 0.6.10, MIT, https://github.com/101arrowz/fflate
+    licence text: owlbear/licenses/fflate@0.6.10.txt
+  - hoist-non-react-statics 3.3.2, BSD-3-Clause, https://github.com/mridgway/hoist-non-react-statics
+    licence text: owlbear/licenses/hoist-non-react-statics@3.3.2.txt
+  - immer 9.0.15, MIT, https://github.com/immerjs/immer
+    licence text: owlbear/licenses/immer@9.0.15.txt
+  - is-plain-object 5.0.0, MIT, https://github.com/jonschlinkert/is-plain-object
+    licence text: owlbear/licenses/is-plain-object@5.0.0.txt
+  - its-fine 1.0.6, MIT, https://github.com/pmndrs/its-fine
+    licence text: owlbear/licenses/its-fine@1.0.6.txt
+  - react 18.2.0, MIT, https://github.com/facebook/react
+    licence text: owlbear/licenses/react@18.2.0.txt
+  - react-dom 18.2.0, MIT, https://github.com/facebook/react
+    licence text: owlbear/licenses/react-dom@18.2.0.txt
+  - react-is 16.13.1, MIT, https://github.com/facebook/react
+    licence text: owlbear/licenses/react-is@16.13.1.txt
+  - react-merge-refs 1.1.0, MIT, https://github.com/gregberge/react-merge-refs
+    licence text: owlbear/licenses/react-merge-refs@1.1.0.txt
+  - react-reconciler 0.27.0, MIT, https://github.com/facebook/react
+    licence text: owlbear/licenses/react-reconciler@0.27.0.txt
+  - react-transition-group 4.4.5, BSD-3-Clause, https://github.com/reactjs/react-transition-group
+    licence text: owlbear/licenses/react-transition-group@4.4.5.txt
+  - react-use-measure 2.1.1, MIT, https://www.npmjs.com/package/react-use-measure
+    licence text: owlbear/licenses/react-use-measure@2.1.1.txt
+  - scheduler 0.21.0, MIT, https://github.com/facebook/react
+    licence text: owlbear/licenses/scheduler@0.21.0.txt
+  - scheduler 0.23.0, MIT, https://github.com/facebook/react
+    licence text: owlbear/licenses/scheduler@0.23.0.txt
+  - stylis 4.0.13, MIT, https://github.com/thysultan/stylis.js
+    licence text: owlbear/licenses/stylis@4.0.13.txt
+  - suspend-react 0.1.3, MIT, https://github.com/pmndrs/suspend-react
+    licence text: owlbear/licenses/suspend-react@0.1.3.txt
+  - three 0.153.0, MIT, https://github.com/mrdoob/three.js
+    licence text: owlbear/licenses/three@0.153.0.txt
+  - three-stdlib 2.23.10, MIT, https://github.com/pmndrs/three-stdlib
+    licence text: owlbear/licenses/three-stdlib@2.23.10.txt
+  - three-stdlib 2.23.9, MIT, https://github.com/pmndrs/three-stdlib
+    licence text: owlbear/licenses/three-stdlib@2.23.9.txt
+  - use-asset 1.0.4, MIT, https://github.com/pmndrs/use-asset
+    licence text: owlbear/licenses/use-asset@1.0.4.txt
+  - use-sync-external-store 1.2.0, MIT, https://github.com/facebook/react
+    licence text: owlbear/licenses/use-sync-external-store@1.2.0.txt
+  - vite 3.1.8, MIT, https://github.com/vitejs/vite
+    licence text: owlbear/licenses/vite@3.1.8.txt
+  - zustand 3.7.2, MIT, https://github.com/pmndrs/zustand
+    licence text: owlbear/licenses/zustand@3.7.2.txt
+  - zustand 4.1.2, MIT, https://github.com/pmndrs/zustand
+    licence text: owlbear/licenses/zustand@4.1.2.txt
