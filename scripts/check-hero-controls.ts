@@ -41,8 +41,10 @@ function inside(selector: string) {
 
 // The press as Hero handles it: only a press that starts a drag grabs.
 function pressAt(pointer: WavesPointer, target: ReturnType<typeof inside>, x: number, y: number) {
-  if (startsDrag(LEFT_BUTTON, 'mouse', false, onContent(target))) pointer.grab(x, y)
+  if (startsDrag(LEFT_BUTTON, 'mouse', false, onContent(target))) pointer.grab(x, y, 0)
 }
+
+const HERO = { left: 0, top: 0, right: 800, bottom: 600 }
 
 function close(actual: number, expected: number, message = '') {
   assert.ok(Math.abs(actual - expected) < 1e-9, `${message} expected ${expected}, got ${actual}`)
@@ -102,27 +104,53 @@ const checks: [string, () => void][] = [
     'hover feeds the waves no pointer',
     () => {
       const pointer = new WavesPointer()
-      pointer.move(40, 50)
+      pointer.move(40, 50, 0)
       assert.equal(pointer.current, null)
+      assert.equal(pointer.at(0, HERO), null)
     },
   ],
   [
-    'a drag from bare background feeds the pointer; one from content does not; release settles',
+    'a drag from bare background feeds the pointer; one from content does not; a still release settles',
     () => {
       const pointer = new WavesPointer()
       pressAt(pointer, inside('.waves'), 10, 20)
-      assert.deepEqual(pointer.current, { x: 10, y: 20 })
-      pointer.move(30, 25)
-      assert.deepEqual(pointer.current, { x: 30, y: 25 })
-      pointer.release()
-      assert.equal(pointer.current, null)
-      pointer.move(35, 25)
-      assert.equal(pointer.current, null, 'moves after release are hover')
+      assert.deepEqual(pointer.at(0, HERO), { x: 10, y: 20 })
+      pointer.move(30, 25, FRAME_MS)
+      assert.deepEqual(pointer.at(FRAME_MS, HERO), { x: 30, y: 25 })
+      pointer.release(1000)
+      assert.equal(pointer.at(1000, HERO), null)
+      pointer.move(35, 25, 1000 + FRAME_MS)
+      assert.equal(pointer.at(1000 + FRAME_MS, HERO), null, 'moves after release are hover')
 
       const fromContent = new WavesPointer()
       pressAt(fromContent, inside('.hero-text'), 10, 20)
-      fromContent.move(30, 25)
-      assert.equal(fromContent.current, null)
+      fromContent.move(30, 25, FRAME_MS)
+      assert.equal(fromContent.at(FRAME_MS, HERO), null)
+    },
+  ],
+  [
+    'a flung pointer coasts on for the waves; a cancelled one or reduced motion does not',
+    () => {
+      const flung = new WavesPointer()
+      pressAt(flung, inside('.waves'), 100, 300)
+      flung.move(200, 300, 50)
+      flung.release(50)
+      assert.equal(flung.current, null, 'the dragged point is gone')
+      const coasting = flung.at(50 + FRAME_MS, HERO)
+      assert.ok(coasting && coasting.x > 200, `coasting at ${JSON.stringify(coasting)}`)
+
+      const cancelled = new WavesPointer()
+      pressAt(cancelled, inside('.waves'), 100, 300)
+      cancelled.move(200, 300, 50)
+      cancelled.cancel()
+      assert.equal(cancelled.at(50 + FRAME_MS, HERO), null)
+
+      const reduced = new WavesPointer()
+      reduced.reducedMotion = true
+      pressAt(reduced, inside('.waves'), 100, 300)
+      reduced.move(200, 300, 50)
+      reduced.release(50)
+      assert.equal(reduced.at(50 + FRAME_MS, HERO), null)
     },
   ],
   [

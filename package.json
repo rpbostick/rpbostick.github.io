@@ -10,6 +10,7 @@
     "check:palette": "node scripts/check-palette.ts",
     "check:color-drive": "node scripts/check-color-drive.ts",
     "check:hero-controls": "node scripts/check-hero-controls.ts",
+    "check:momentum": "node scripts/check-momentum.ts",
     "check:backdrops": "node scripts/check-backdrops.ts",
     "test:unit": "node --test scripts/*.test.ts",
     "preview": "vite preview"

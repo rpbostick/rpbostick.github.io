@@ -17,11 +17,6 @@ const drive = new ColorDrive()
 const patternDrive = new PatternDrive()
 const wavesPointer = new WavesPointer()
 
-// Called by Waves once per frame.
-function wavesPointerNow() {
-  return wavesPointer.current
-}
-
 function onStrip(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest('.hero-strip') !== null
 }
@@ -68,7 +63,18 @@ export default function Hero() {
   useEffect(() => {
     drive.reducedMotion = reducedMotion
     patternDrive.reducedMotion = reducedMotion
+    wavesPointer.reducedMotion = reducedMotion
   }, [reducedMotion])
+
+  // Called by Waves once per frame. The pointer is kept relative to the hero,
+  // whose edges the coast bounces off; Waves wants client coordinates.
+  const wavesPointerNow = useCallback(() => {
+    const hero = heroRef.current
+    if (!hero) return null
+    const rect = hero.getBoundingClientRect()
+    const point = wavesPointer.at(performance.now(), { left: 0, top: 0, right: rect.width, bottom: rect.height })
+    return point && { x: point.x + rect.left, y: point.y + rect.top }
+  }, [])
 
   // Called by Waves once per frame; the tag re-renders only when the nearest
   // stop changes.
@@ -99,6 +105,12 @@ export default function Hero() {
     const hero = heroRef.current
     if (!hero) return
     let drag: Drag | null = null
+    const heroElement: HTMLElement = hero
+
+    function heroPoint(event: PointerEvent) {
+      const rect = heroElement.getBoundingClientRect()
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top }
+    }
 
     function onPointerDown(event: PointerEvent) {
       if (event.button === MIDDLE_BUTTON) {
@@ -119,12 +131,14 @@ export default function Hero() {
         axis: null,
       }
       patternDrive.grab(now)
-      wavesPointer.grab(event.clientX, event.clientY)
+      const point = heroPoint(event)
+      wavesPointer.grab(point.x, point.y, now)
       setDragging(true)
     }
     function onPointerMove(event: PointerEvent) {
       if (!drag || event.pointerId !== drag.pointerId) return
-      wavesPointer.move(event.clientX, event.clientY)
+      const point = heroPoint(event)
+      wavesPointer.move(point.x, point.y, performance.now())
       if (drag.axis === null) {
         const fromStartX = event.clientX - drag.startX
         const fromStartY = event.clientY - drag.startY
@@ -149,8 +163,11 @@ export default function Hero() {
     }
     function onPointerEnd(event: PointerEvent) {
       if (!drag || event.pointerId !== drag.pointerId) return
-      if (drag.axis !== null) patternDrive.release(performance.now())
-      wavesPointer.release()
+      const now = performance.now()
+      if (drag.axis !== null) patternDrive.release(now)
+      // A cancelled pointer (the browser took over the gesture) was not flung.
+      if (event.type === 'pointercancel') wavesPointer.cancel()
+      else wavesPointer.release(now)
       drag = null
       setDragging(false)
     }
