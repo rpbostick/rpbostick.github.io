@@ -17,8 +17,8 @@ npm run lint
 | `/figurewright/` | `figurewright/index.html` | `src/figurewright/`, images in `public/figurewright/` |
 | `/colorwright/` | `public/colorwright/index.html` (the exported demo) | host bundle `src/host/colorwright.tsx` |
 | `/skywright/` | `public/skywright/index.html` (the exported demo) | host bundle `src/host/skywright.tsx` |
-| `/chargen/` | `public/chargen/index.html` (a self-contained page, unlisted on the index) | built in its own repo; copied here unchanged |
-| `/chargen2/` | `public/chargen2/index.html` (the same page from its public build: comments stripped, leak-checked; unlisted) | built in its own repo; copied here unchanged |
+| `/chargen/` | `public/chargen/index.html` (the character generator's public build: self-contained, comments stripped, leak-checked; unlisted on the index) | built in its own repo; copied here unchanged |
+| `/chargen2/` | `public/chargen2/index.html` | redirects to `/chargen/`, keeping the link's seed and options |
 
 Shared styles and hooks live in `src/shared/`. A new page needs its own `<name>/index.html`, a `src/<name>/main.tsx`, and an entry in `build.rollupOptions.input` in `vite.config.ts`.
 
