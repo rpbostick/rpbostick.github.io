@@ -15,6 +15,8 @@ export default defineConfig({
       input: {
         index: entry('./index.html'),
         figurewright: entry('./figurewright/index.html'),
+        // A dev preview, unlinked; listed so `vite preview` serves it too.
+        'wave-patterns': entry('./dev/wave-patterns.html'),
         'colorwright-host': entry('./src/host/colorwright.tsx'),
         'skywright-host': entry('./src/host/skywright.tsx'),
       },
