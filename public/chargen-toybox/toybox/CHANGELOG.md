@@ -4,6 +4,27 @@ Versions follow [semantic versioning](https://semver.org/): a change to an eleme
 attributes, the toy interface or the files in `dist/` that breaks a page using them is a new
 major version (a new minor version while the version starts with 0).
 
+## 0.5.0 (2026-10-03)
+
+The backgrounds coast, ripple, glide and spin under a drag; `dist/` is a build product.
+
+- `<toy-background>`: a fling coasts on after release, slowing, before the background settles.
+  A drag stretches and swirls Line Waves and Grid Ripples under the pointer, pulls the field
+  like a sheet on water that glides on 3 to 9 s after release without springing back, and
+  turns the pattern as the inside of a ball that a fling spins; Aurora, Soap Film, Plasma and
+  Starfield take the coasting pointer and the sheet's shift and twist. The dynamics are
+  reactbits-kit v0.3.0's modules (MIT), bundled into the background chunk, at the figurewright
+  hero's tuning. `ripple="off"`, `sheet="off"`, `spin="off"` and `momentum="off"` turn each
+  off; under reduced motion none of them moves.
+- `registerBackground`: `pointer(point)` also hears the coasting pointer once a frame after a
+  fling, before the `null`; `mount(el, api)` gets `api.motion`, the drag dynamics' state
+  (pointer, sheet, ripple field, spin), documented in the README.
+- `dist/` is no longer in git: run `npm ci` and `bash build.sh` (the README lists what it
+  writes), or use the release zip; `npm pack` builds it first. esbuild is pinned to 0.28.2 so a build repeats; the tests
+  that read `dist/` skip, saying so, until it is built.
+- The all-in-one classic script's size budget is 120 KB gzipped (it is 112.5 KB with the drag
+  dynamics).
+
 ## 0.4.1 (2026-10-02)
 
 The Draw button goes in any corner or anywhere it is dragged; options for pages that bring

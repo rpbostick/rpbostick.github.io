@@ -1,5 +1,6 @@
 {
   "library": [
+    "@rpbostick/reactbits-kit",
     "idb-keyval",
     "matter-js",
     "perfect-freehand"
@@ -8,6 +9,7 @@
     "matter-js"
   ],
   "classicAll": [
+    "@rpbostick/reactbits-kit",
     "idb-keyval",
     "matter-js",
     "perfect-freehand"

@@ -19,13 +19,15 @@ custom elements added with one script tag. No framework on the page.
 the first time the page uses that element, and each toy's when it opens. Only the toys you can
 see run: they pause while the tab is hidden or they are scrolled off screen, and under
 `prefers-reduced-motion` they open paused (a still first frame; Play starts them).
-`dist/index.html` is a demo page with all of them together and copy-paste snippets.
+`dist/index.html` (built by `bash build.sh`, see Development) is a demo page with all of
+them together and copy-paste snippets.
 
 ## Installing
 
 ### A script tag
 
-Serve the `dist/` folder anywhere (your own site, a sub-path, another host) and load one of
+Build `dist/` (`npm ci`, then `bash build.sh`; it is not in git) or unzip a release zip
+(below), serve that folder anywhere (your own site, a sub-path, another host) and load one of
 its three builds:
 
 ```html
@@ -215,8 +217,9 @@ setting are remembered per browser; under reduced motion it starts off.
 The background reacts only to a drag: hovering does nothing, and bare background shows a grab
 cursor. A left-button press (or a touch) on bare background grabs it; while held, the
 background follows the pointer wherever it goes, the cursor is `grabbing` everywhere and no
-text is selected. Release, cancel or the pointer leaving the window lets go, and the background
-settles. A press on content never starts a drag (so a touch there still scrolls the page; a
+text is selected. Release or the pointer leaving the window lets go: a fling coasts on,
+slowing, then the background settles (a cancel by the browser or the window losing focus
+settles at once). A press on content never starts a drag (so a touch there still scrolls the page; a
 touch drag on bare background does not). With "Background reacts to the mouse" off there is
 no grab cursor and no drag. The cursor rules are a `<style data-toybox-background>` the element
 adds to the page's `<head>`, on the classes `toybox-background-grab` and
@@ -232,6 +235,26 @@ not react under them. The element must not be inside a transformed or filtered c
 | `effects` | comma-separated: which backgrounds the button cycles, in order (`lines`, `aurora`, `film`, `plasma`, `stars`, `ripples`, and any registered) | all, registered ones included |
 | `controls` | `full`; `compact` (name and on/off); `none` (drive it from script) | `full` |
 | `theme` | `light`, `dark`, `auto` | `auto` |
+| `ripple` | `on`, `off`: the local stretch and swirl under a drag | `on` |
+| `sheet` | `on`, `off`: the field following a drag like a sheet on water and gliding on after release | `on` |
+| `spin` | `on`, `off`: the pattern as the inside of a ball that a drag turns and a fling spins | `on` |
+| `momentum` | `on`, `off`: the pointer coasting on after a fling | `on` |
+
+**Drag dynamics.** A drag moves the background the way figurewright's hero moves: the
+modules of [reactbits-kit](https://github.com/rpbostick/reactbits-kit) v0.3.0 (MIT; our own
+code, no React Bits code), at their tuning. The sheet follows 30% of the drag, at most 12% of
+the window's shorter side, and glides on 3 to 9 s after release without springing back; the
+ripple and swirl are at the hero's doubled strength; the ball turns at 0.1 of the pointer.
+Which background uses what:
+
+| Background | Coasting pointer | Ripple field | Sheet | Spin |
+|---|---|---|---|---|
+| Line Waves (`lines`) | yes | yes | yes | yes |
+| Grid Ripples (`ripples`) | yes | yes | yes (shift) | yes |
+| Aurora, Soap Film, Plasma (`aurora`, `film`, `plasma`) | yes | — | yes (shift and twist of the pattern) | — |
+| Starfield (`stars`) | yes | — | yes (the sky shifts and turns) | — |
+
+Under reduced motion none of them moves: no coast, ripple, glide or spin.
 
 ```html
 <toy-background effects="lines,aurora,stars" controls="compact"></toy-background>
@@ -252,13 +275,13 @@ import { registerBackground } from 'https://example.com/toybox/toybox.js';
 registerBackground('my-glow', {
   name: 'Glow',                 // what the name button shows
   wash: 0.2,                    // optional: the page colour over it, 0–1, or { light, dark }
-  mount(el, api) {              // el: a div filling the layer; api: { colors, theme, reducedMotion }
+  mount(el, api) {              // el: a div filling the layer; api: { colors, theme, reducedMotion, motion }
     const canvas = document.createElement('canvas');
     el.append(canvas);
     // … draw with api.colors …
     return {
       setColors(colors) {},     // the wheel's colours changed: { theme, hex: [3 × '#rrggbb'], rgb: [3 × [r, g, b] 0–1] }
-      pointer(point) {},        // { x, y } in client pixels during a drag; null once when it ends
+      pointer(point) {},        // { x, y } in client pixels during a drag and its coast; null once when it ends
       pause() {}, resume() {},  // out of sight, or reduced motion (show a still frame)
       destroy() { canvas.remove(); },
     };
@@ -272,8 +295,25 @@ required on the definition or on what `mount` returns, the other methods are opt
 (only the page colour), one number for both themes or `{ light: 0.2, dark: 0.3 }` (the
 default when it is left out).
 `pointer` follows the same drag-only rule as the built-in backgrounds: it hears `{ x, y }` from
-a press on bare background until release, wherever the pointer goes, then `null` once, and
-nothing while the pointer only hovers or "Background reacts to the mouse" is off. A
+a press on bare background until release, wherever the pointer goes, then once a frame while a
+fling coasts on (unless `momentum="off"` or reduced motion), then `null` once, and nothing
+while the pointer only hovers or "Background reacts to the mouse" is off.
+
+`api.motion` is the drag dynamics the built-in backgrounds read, for a background that wants
+them too. Read it once a frame (each call advances it to `at`, `performance.now()` when left
+out); lengths are client pixels:
+
+| Member | Gives |
+|---|---|
+| `pointer(at?)` | the dragged or coasting pointer `{ x, y }`, or `null` |
+| `sheet(at?)` | `{ x, y, centerX, centerY, angle, moving, weightAt({ x, y }) }`: the shift at the dragged point, which `weightAt` scales (1 there, less further off), and a twist in radians; all 0 with `sheet="off"` |
+| `ripple(grid, at?)` | the ripple field's offsets `{ x, y }` (Float64Arrays) for a grid of columns of `{ x, y, wave: { x, y } }` points, or `null` at rest or with `ripple="off"` |
+| `displace(grid, at?)` | the ripple and the sheet together for such a grid, as Line Waves draws them |
+| `spin(at?)` | the ball's turn `{ x, y, yaw, pitch, period, moving }`; 0 with `spin="off"` |
+| `sample(grid, at?)` | where each grid point reads the pattern on the turning ball `{ x, y }`, or `null` with `spin="off"` |
+| `held`, `stroke`, `options`, `reducedMotion` | the held point (no coast), a count of presses, `{ ripple, sheet, spin, momentum }` from the attributes, and reduced motion |
+
+A
 background that throws while mounting is logged to the console and the page colour stays. A
 `<toy-background>` without `effects` takes a newly registered background into its cycle at
 once; to name it in `effects`, set the attribute after registering. Registering through any
@@ -518,8 +558,10 @@ class extends `lazyElementBase` (`src/elements/lazy.js`) and its registry line n
   `dist/dice-box/` carry parts of Babylon.js (Apache-2.0) and ammo.js, a port of Bullet (both
   Zlib).
 - The six backgrounds are Toybox's own (MIT); the shader ones use David Hoskins' "Hash without
-  Sine" (MIT), credited in `src/background/effects/shader.js` and the licence file. No React
-  Bits code is in the library (see `registerBackground` for using React Bits on your own site).
+  Sine" (MIT), credited in `src/background/effects/shader.js` and the licence file. Their drag
+  dynamics are the modules of reactbits-kit (MIT, our own code), bundled into the background
+  chunk. No React Bits code is in the library (see `registerBackground` for using React Bits on
+  your own site).
 - The drawing elements use perfect-freehand (MIT) and idb-keyval (Apache-2.0).
 - The twisty cube page bundles cubing.js (MPL-2.0 or GPL-3.0-or-later) and three.js (MIT);
   the music box page is ToneMatrix Redux (GPL-3.0) with Tone.js and clipboard.js (MIT). Each
@@ -554,5 +596,23 @@ node e2e/drive.mjs http://127.0.0.1:8797/toys/v1/index.html out/ [--dark] [--red
 ```
 
 `build.sh` fetches ToneMatrix Redux and cubing.js into the git-ignored `vendor/` and copies
-dice-box's files from `node_modules` into the git-ignored `dist/dice-box/`. Development notes
-on each toy and element are in `NOTES.md`; sizes in `SIZES.md`.
+dice-box's files from `node_modules`. `dist/` is a build product and not in git: the same
+commit and lock file build the same files (esbuild and the reactbits-kit commit are pinned).
+The tests that read `dist/` skip, saying so, until it is built. Development notes on each toy
+and element are in `NOTES.md`; sizes in `SIZES.md`.
+
+### What `bash build.sh` writes
+
+Into `dist/`, from a clean checkout after `npm ci`:
+
+- `toybox.js`, `toybox.iife.js`, `toybox-all.iife.js`
+- `toys/<id>.js` for every toy, and `chunks/`
+- `index.html` (the demo page, from `src/demo/index.html`)
+- `THIRD_PARTY_LICENSES.txt`, `LICENSE`, `bundled-packages.json`
+- `dice-box/` (the 3D dice)
+- `twisty/index.html`, `twisty/app/`, `twisty/LICENSES.txt`, `twisty/SOURCE.md`, `twisty/source.zip`
+- `music-box/index.html`, `music-box/app/`, `music-box/LICENSES.txt`, `music-box/SOURCE.md`, `music-box/source.zip`
+
+`TOYBOX_FRESH_BUILD=1 node --test tests/fresh-build.test.js` clones the working tree into a
+temporary folder, runs `npm ci` and `bash build.sh` there, and checks it writes each of these
+(it fetches from npm and GitHub, so the plain `node --test` skips it).
