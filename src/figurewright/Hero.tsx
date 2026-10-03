@@ -74,7 +74,8 @@ export default function Hero() {
   }, [reducedMotion])
 
   // Called by Waves once per frame: the dragged or coasting pointer stirs the
-  // ripple field, and the dragged one alone pulls the whole field after it;
+  // ripple field, and the dragged one alone pulls the whole field after it,
+  // which glides on after release;
   // Waves draws the sum. The waves fill the hero, so hero-relative
   // coordinates are the grid's. Reduced motion has neither.
   const wavesDisplacement = useCallback(
@@ -95,8 +96,8 @@ export default function Hero() {
         now: time,
         radius: rippleRadius(rect.width, rect.height),
       })
-      // Deliberate: the coast does not pull the field; the spring returns to
-      // rest as soon as the pointer is let go.
+      // Deliberate: only the held pointer pulls the field, not the coast; once
+      // let go, the field glides on with its own momentum.
       clothFollow.step({
         pointer: wavesPointer.current,
         stroke: wavesPointer.stroke,
@@ -305,6 +306,7 @@ export default function Hero() {
         xGap={12}
         yGap={36}
         overscanX={FOLLOW.MAX_SHIFT_PX}
+        overscanY={FOLLOW.MAX_SHIFT_PX}
       />
       <div className="hero-content">
         <div className="hero-text">

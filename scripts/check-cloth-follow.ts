@@ -1,7 +1,9 @@
 // Checks the hero's global follow: a held drag pulls the field to a share of
 // its offset (capped) through a spring that lags and overshoots a little, the
-// pull falls off away from the pointer, release settles back to rest in time,
-// the result does not depend on the frame rate, and reduced motion has none.
+// pull falls off away from the pointer, a release glides on and slows without
+// springing back, then eases to rest without a jump, a new press takes over
+// smoothly, the result does not depend on the frame rate, the lines cover the
+// edges, and reduced motion has none.
 // Run: node scripts/check-cloth-follow.ts
 import assert from 'node:assert/strict'
 import { ClothFollow, FOLLOW } from '../src/shared/clothFollow.ts'
@@ -12,6 +14,7 @@ const HEIGHT = 800
 const X_GAP = 12
 const Y_GAP = 36
 const OVERSCAN_X = FOLLOW.MAX_SHIFT_PX
+const OVERSCAN_Y = FOLLOW.MAX_SHIFT_PX
 const CAP = Math.min(FOLLOW.CAP_SHARE * Math.min(WIDTH, HEIGHT), FOLLOW.MAX_SHIFT_PX)
 const PRESS: Point = { x: 400, y: 400 }
 // The largest sideways wave amplitude among the hero's patterns (patternDrive).
@@ -20,7 +23,7 @@ const MAX_WAVE_AMP_X = 75
 // The grid as Waves lays it out (setLines) with the hero's overscan.
 function grid(): GridPoint[][] {
   const totalLines = Math.ceil((WIDTH + 200 + 2 * OVERSCAN_X) / X_GAP)
-  const totalPoints = Math.ceil((HEIGHT + 30) / Y_GAP)
+  const totalPoints = Math.ceil((HEIGHT + 30 + 2 * OVERSCAN_Y) / Y_GAP)
   const xStart = (WIDTH - X_GAP * totalLines) / 2
   const yStart = (HEIGHT - Y_GAP * totalPoints) / 2
   const lines: GridPoint[][] = []
@@ -118,18 +121,86 @@ const checks: [string, () => void][] = [
     },
   ],
   [
-    'on release the field wobbles back and comes to rest within 1.5 s',
+    'on release the field glides on along its velocity and slows, without springing back',
     () => {
-      let restAt: number | null = null
-      let crossed = false
-      const follow = run(dragBy(900, 0, 2000), 4000, 1000 / 60, (field, now, moving) => {
-        if (now > 2000 && field.shift.x < 0) crossed = true
-        if (now >= 2000 && !moving && restAt === null) restAt = now
+      // A steady drag of 600 px/s, let go while still moving.
+      const releaseMs = 300
+      const path: Path = (ms) => (ms < releaseMs ? { x: PRESS.x + ms * 0.6, y: PRESS.y } : null)
+      let atRelease: Point | null = null
+      let speedAtRelease = 0
+      const after: { now: number; x: number; speed: number }[] = []
+      run(path, releaseMs + 3000, 1000 / 60, (follow, now) => {
+        if (Math.abs(now - releaseMs) < 1e-6) {
+          atRelease = follow.shift
+          speedAtRelease = follow.velocity.x
+        }
+        if (now > releaseMs) after.push({ now, x: follow.shift.x, speed: follow.velocity.x })
       })
-      assert.ok(crossed, 'it overshoots the rest position once')
-      assert.ok(restAt !== null && restAt - 2000 <= 1500, `at rest ${restAt === null ? 'never' : restAt - 2000} ms after release`)
+      assert.ok(atRelease !== null && speedAtRelease > 20, `moving at ${speedAtRelease} px/s on release`)
+      const start = (atRelease as Point).x
+      const firstHalf = after.filter((sample) => sample.now - releaseMs <= 500)
+      firstHalf.reduce((previous, sample) => {
+        assert.ok(sample.x >= previous - 1e-9, `the shift fell from ${previous} to ${sample.x} px at ${sample.now} ms`)
+        return sample.x
+      }, start)
+      const halfSecond = firstHalf[firstHalf.length - 1]
+      assert.ok(halfSecond.x - start > 5, `it glided ${halfSecond.x - start} px on in half a second`)
+      assert.ok(halfSecond.speed < speedAtRelease * 0.75, `slowed from ${speedAtRelease} to ${halfSecond.speed} px/s`)
+      const twoSeconds = after.find((sample) => sample.now - releaseMs >= 2000)
+      assert.ok(twoSeconds && Math.abs(twoSeconds.speed) < speedAtRelease * 0.15, `still at ${twoSeconds?.speed} px/s after 2 s`)
+    },
+  ],
+  [
+    'after the glide the field eases back without a jump or a wobble',
+    () => {
+      // Let go while moving at 600 px/s, so the glide and the return both run.
+      const releaseMs = 300
+      const path: Path = (ms) => (ms < releaseMs ? { x: PRESS.x + ms * 0.6, y: PRESS.y } : null)
+      let previous: Point | null = null
+      let previousStep: number | null = null
+      let largestJerk = 0
+      let crossed = false
+      let restAt: number | null = null
+      let shiftAt3s = 0
+      const follow = run(path, 60000, 1000 / 60, (field, now, moving) => {
+        const shift = field.shift
+        if (previous && now > releaseMs) {
+          const step = shift.x - previous.x
+          if (previousStep !== null && now > releaseMs + 100 && moving) largestJerk = Math.max(largestJerk, Math.abs(step - previousStep))
+          previousStep = step
+        }
+        if (now > releaseMs && shift.x < 0) crossed = true
+        if (now > releaseMs && !moving && restAt === null) restAt = now
+        if (Math.abs(now - releaseMs - 3000) < 1e-6) shiftAt3s = shift.x
+        previous = shift
+      })
+      // Through the glide and the return, a frame's movement differs from the
+      // last one's by under 0.05 px: no jump, no snap. (At the release itself
+      // the velocity carries on but the spring's pull stops, as it should; the
+      // frame that comes to rest drops the last SETTLE_PX, below the 0.1 px
+      // Waves rounds to.)
+      assert.ok(largestJerk < 0.05, `a frame's movement changed by ${largestJerk} px`)
+      assert.ok(!crossed, 'it never passes back beyond the rest position')
+      assert.ok(shiftAt3s > 5, `3 s after release the field still holds ${shiftAt3s} px of the drag`)
+      assert.ok(restAt !== null && restAt - releaseMs > 5000, `back at rest ${restAt === null ? 'never' : restAt - releaseMs} ms after release`)
       assert.ok(follow.atRest)
       assert.equal(follow.displace(GRID, null), null, 'nothing to draw at rest')
+    },
+  ],
+  [
+    'a hard fling glides within the limit and never stops dead at it',
+    () => {
+      const path: Path = (ms) => (ms < 120 ? { x: PRESS.x + ms * 8, y: PRESS.y } : null)
+      let largest = 0
+      let lastSpeed = Infinity
+      run(path, 3000, 1000 / 60, (follow, now) => {
+        largest = Math.max(largest, follow.shift.x)
+        if (now > 120 && now < 600) {
+          assert.ok(follow.velocity.x <= lastSpeed + 1e-9, `sped up to ${follow.velocity.x} px/s at ${now} ms`)
+          lastSpeed = follow.velocity.x
+        }
+      })
+      assert.ok(largest <= FOLLOW.MAX_SHIFT_PX * 0.99, `the shift reached ${largest} of ${FOLLOW.MAX_SHIFT_PX} px`)
     },
   ],
   [
@@ -174,6 +245,11 @@ const checks: [string, () => void][] = [
       // The outermost lines stay off screen however far the waves swing them.
       assert.ok(GRID[0][0].x + FOLLOW.MAX_SHIFT_PX + MAX_WAVE_AMP_X < 0, `left line at ${GRID[0][0].x}`)
       assert.ok(GRID[GRID.length - 1][0].x - FOLLOW.MAX_SHIFT_PX - MAX_WAVE_AMP_X > WIDTH, 'right line')
+      // And each line's ends stay beyond the top and bottom however far the
+      // field is shifted up or down.
+      const lastPoint = GRID[0].length - 1
+      assert.ok(GRID[0][0].y + FOLLOW.MAX_SHIFT_PX < 0, `top end at ${GRID[0][0].y}`)
+      assert.ok(GRID[0][lastPoint].y - FOLLOW.MAX_SHIFT_PX > HEIGHT, `bottom end at ${GRID[0][lastPoint].y}`)
     },
   ],
   [
@@ -191,14 +267,21 @@ const checks: [string, () => void][] = [
     },
   ],
   [
-    'a new press starts its own offset; bad input fails loud',
+    'a press during a glide takes over from where the field is; bad input fails loud',
     () => {
-      const follow = run(dragBy(300, 0), 2000)
-      // A second stroke pressed far away: no jump towards that point.
-      for (let now = 2020; now <= 4000; now += 1000 / 60) {
+      const follow = run(dragBy(300, 0, 1000), 1200)
+      const before = follow.shift
+      // A second stroke pressed far away and held still: no jump towards it
+      // or back to rest, only the glide's speed spent by the spring.
+      let largestStep = 0
+      let previous = before
+      for (let now = 1200 + 1000 / 60; now <= 4000; now += 1000 / 60) {
         follow.step({ pointer: { x: 1100, y: 100 }, stroke: 2, now, width: WIDTH, height: HEIGHT })
+        largestStep = Math.max(largestStep, Math.hypot(follow.shift.x - previous.x, follow.shift.y - previous.y))
+        previous = follow.shift
       }
-      close(Math.hypot(follow.shift.x, follow.shift.y), 0, 0.5, 'shift after holding the new press still')
+      assert.ok(largestStep < 1, `the shift moved ${largestStep} px in one frame`)
+      assert.ok(Math.abs(follow.shift.x - before.x) < 5, `the field moved from ${before.x} to ${follow.shift.x} px`)
       assert.throws(() => follow.step({ pointer: { x: Number.NaN, y: 0 }, stroke: 2, now: 4100, width: WIDTH, height: HEIGHT }), /bad pointer/)
       assert.throws(() => follow.step({ pointer: null, stroke: 2, now: 4100, width: 0, height: HEIGHT }), /bad time/)
     },

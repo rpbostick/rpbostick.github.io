@@ -1,30 +1,39 @@
-// The whole wave field following a drag a little, like a sheet pulled across
-// water: while the pointer is held, the field is shifted by a share of the
-// pointer's offset from the press point, through a soft, underdamped spring
-// so it lags, overshoots slightly and wobbles back to rest on release. The
-// shift is strongest at the pointer and falls off across the hero, so the
-// field stretches like cloth rather than sliding like a picture. It sits on
-// top of the ripple field's local stir. Pure (no DOM, no React) so a check
-// script can drive it. Lengths are pixels; rates are per second unless the
-// name says ms.
+// The whole wave field following a drag a little, like a sheet on water:
+// while the pointer is held, the field is shifted by a share of the pointer's
+// offset from the press point, through a soft, underdamped spring so it lags
+// and overshoots slightly. On release it does not spring back: it glides on
+// with the velocity it had, slowing with the pointer coast's friction, and
+// once slow drifts back to rest so gently (overdamped, over several seconds)
+// that the waves' own flow carries on from wherever it ended. The shift is
+// strongest at the pointer and falls off across the hero, so the field
+// stretches like cloth rather than sliding like a picture. It sits on top of
+// the ripple field's local stir. Pure (no DOM, no React) so a check script can
+// drive it. Lengths are pixels; rates are per second unless the name says ms.
 
+import { MOMENTUM } from './momentum.ts'
 import type { Displacement, GridPoint, Point } from './rippleField.ts'
 
 export const FOLLOW = {
   // The field under the pointer heads for this share of the pointer's offset
   // from where it was pressed.
   FOLLOW_SHARE: 0.15,
-  // The target shift is at most this share of the hero's shorter side, and
-  // never more than MAX_SHIFT_PX, overshoot included. Waves overscans its grid
-  // by MAX_SHIFT_PX on each side (the hero passes it), so the shifted lines
-  // still reach past the edges.
+  // A drag's own pull is at most this share of the hero's shorter side.
   CAP_SHARE: 0.06,
-  MAX_SHIFT_PX: 60,
-  // The spring towards the target, in 1/s² (ω = 7 rad/s), and its damping:
-  // ζ = DAMPING / (2ω) ≈ 0.64, which overshoots by about 7% and settles from
-  // the cap well within 1.5 s.
+  // The farthest the field is ever shifted, glide and a shift carried into a
+  // new press included. Waves overscans its grid by this on each side (the
+  // hero passes it), so the shifted lines still reach past the edges.
+  MAX_SHIFT_PX: 100,
+  // The spring towards the target while held, in 1/s² (ω = 7 rad/s), and its
+  // damping: ζ = DAMPING / (2ω) ≈ 0.64, which overshoots by about 7%.
   STIFFNESS_PER_S2: 49,
   DAMPING_PER_S: 9,
+  // Released, the speed decays as exp(-k·t), the coast's friction in
+  // momentum.ts: it halves every 0.58 s, so a glide fades over 1–3 s.
+  GLIDE_FRICTION_PER_S: MOMENTUM.FRICTION_PER_MS * 1000,
+  // And a weak pull back to rest, in 1/s². Below (k/2)² = 0.36 it is
+  // overdamped, so the return never wobbles; at 0.2 its slow part decays with
+  // a time constant of about 5 s.
+  RELAX_PER_S2: 0.2,
   // The falloff: a point FAR_DISTANCE_SHARE of the hero's diagonal from the
   // pointer follows FAR_WEIGHT of the shift (Gaussian in between and beyond).
   FAR_DISTANCE_SHARE: 0.75,
@@ -62,8 +71,13 @@ export class ClothFollow {
   private lastNow: number | null = null
   private carryMs = 0
   private press: Point | null = null
+  // The shift when the pointer was pressed: a press during a glide pulls on
+  // from there, so it takes over without a jump.
+  private anchor: Point = { x: 0, y: 0 }
   private pointer: Point | null = null
   private stroke: number | null = null
+  // Whether the last substep was held; the first released one limits the glide.
+  private held = false
   // Where the falloff is centered: the dragged point, kept after release.
   private center: Point = { x: 0, y: 0 }
   private diagonal = 1
@@ -85,6 +99,11 @@ export class ClothFollow {
     return { x: this.shiftX, y: this.shiftY }
   }
 
+  // The field's velocity at the pointer, in px/s.
+  get velocity(): Point {
+    return { x: this.speedX, y: this.speedY }
+  }
+
   reset() {
     this.shiftX = 0
     this.shiftY = 0
@@ -94,8 +113,10 @@ export class ClothFollow {
     this.lastNow = null
     this.carryMs = 0
     this.press = null
+    this.anchor = { x: 0, y: 0 }
     this.pointer = null
     this.stroke = null
+    this.held = false
   }
 
   // The weight of the shift a point at `place` follows.
@@ -105,7 +126,7 @@ export class ClothFollow {
     return this.options.FAR_WEIGHT ** distance2
   }
 
-  // Advances the spring to `input.now`; false while it is at rest.
+  // Advances the field to `input.now`; false while it is at rest.
   step(input: FollowInput): boolean {
     const { pointer, now, width, height } = input
     if (!Number.isFinite(now) || !(width > 0) || !(height > 0)) {
@@ -123,7 +144,10 @@ export class ClothFollow {
     this.lastNow = now
 
     const fresh = pointer !== null && (this.pointer === null || input.stroke !== this.stroke)
-    if (fresh) this.press = { x: pointer.x, y: pointer.y }
+    if (fresh) {
+      this.press = { x: pointer.x, y: pointer.y }
+      this.anchor = { x: this.shiftX, y: this.shiftY }
+    }
     const from = fresh ? pointer : this.pointer
     this.pointer = pointer && { x: pointer.x, y: pointer.y }
     this.stroke = input.stroke
@@ -143,7 +167,8 @@ export class ClothFollow {
       // it was last seen until the frame's end, so the release lands at the
       // same time at any frame rate.
       const at = pointer && from ? { x: from.x + (pointer.x - from.x) * fraction, y: from.y + (pointer.y - from.y) * fraction } : from
-      this.substep(this.target(at, cap))
+      if (at && this.press) this.pull(this.target(at, this.press, cap))
+      else this.glide()
       elapsed += substepMs
     }
     this.carryMs = Math.max(0, frameMs - (elapsed - substepMs))
@@ -186,26 +211,60 @@ export class ClothFollow {
     return { x: this.bufferX, y: this.bufferY }
   }
 
-  private target(at: Point | null, cap: number): Point {
-    if (!at || !this.press) return { x: 0, y: 0 }
-    const x = (at.x - this.press.x) * this.options.FOLLOW_SHARE
-    const y = (at.y - this.press.y) * this.options.FOLLOW_SHARE
+  // The anchor plus the drag's own pull, each capped.
+  private target(at: Point, press: Point, cap: number): Point {
+    let x = (at.x - press.x) * this.options.FOLLOW_SHARE
+    let y = (at.y - press.y) * this.options.FOLLOW_SHARE
+    const pull = Math.hypot(x, y)
+    if (pull > cap) {
+      x *= cap / pull
+      y *= cap / pull
+    }
+    x += this.anchor.x
+    y += this.anchor.y
     const size = Math.hypot(x, y)
-    return size > cap ? { x: (x * cap) / size, y: (y * cap) / size } : { x, y }
+    const most = this.options.MAX_SHIFT_PX
+    return size > most ? { x: (x * most) / size, y: (y * most) / size } : { x, y }
   }
 
-  // Semi-implicit Euler, stable at this substep for ω·dt ≪ 1.
-  private substep(target: Point) {
+  // One held substep. Semi-implicit Euler, stable at this substep for ω·dt ≪ 1.
+  private pull(target: Point) {
     const options = this.options
     const dt = options.SUBSTEP_MS / 1000
+    this.held = true
     this.speedX += (options.STIFFNESS_PER_S2 * (target.x - this.shiftX) - options.DAMPING_PER_S * this.speedX) * dt
     this.speedY += (options.STIFFNESS_PER_S2 * (target.y - this.shiftY) - options.DAMPING_PER_S * this.speedY) * dt
+    this.move(dt)
+  }
+
+  // One released substep: friction and the weak pull back to rest.
+  private glide() {
+    const options = this.options
+    const dt = options.SUBSTEP_MS / 1000
+    if (this.held) {
+      this.held = false
+      // A free glide covers speed / friction; slowing the release keeps it
+      // within MAX_SHIFT_PX, so the field never stops dead at the limit.
+      const room = Math.max(0, options.MAX_SHIFT_PX - Math.hypot(this.shiftX, this.shiftY)) * options.GLIDE_FRICTION_PER_S
+      const speed = Math.hypot(this.speedX, this.speedY)
+      if (speed > room) {
+        this.speedX *= room / speed
+        this.speedY *= room / speed
+      }
+    }
+    const decay = Math.exp(-options.GLIDE_FRICTION_PER_S * dt)
+    this.speedX = this.speedX * decay - options.RELAX_PER_S2 * this.shiftX * dt
+    this.speedY = this.speedY * decay - options.RELAX_PER_S2 * this.shiftY * dt
+    this.move(dt)
+  }
+
+  private move(dt: number) {
     this.shiftX += this.speedX * dt
     this.shiftY += this.speedY * dt
     const size = Math.hypot(this.shiftX, this.shiftY)
-    if (size > options.MAX_SHIFT_PX) {
-      this.shiftX *= options.MAX_SHIFT_PX / size
-      this.shiftY *= options.MAX_SHIFT_PX / size
+    if (size > this.options.MAX_SHIFT_PX) {
+      this.shiftX *= this.options.MAX_SHIFT_PX / size
+      this.shiftY *= this.options.MAX_SHIFT_PX / size
     }
   }
 }
