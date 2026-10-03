@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react'
 import Waves from '../reactbits/Waves/Waves.tsx'
-import { ClothFollow, FOLLOW } from '../shared/clothFollow.ts'
 import { useAnimations } from '../shared/motion.ts'
-import { RippleField, rippleRadius, type GridPoint } from '../shared/rippleField.ts'
+import { RIPPLE, RippleField, rippleRadius, type GridPoint } from '../shared/rippleField.ts'
+import { SphereSpin, SPIN } from '../shared/sphereSpin.ts'
 import { useTheme } from '../shared/theme.ts'
 import { useMediaQuery } from '../shared/useMediaQuery.ts'
 import { usePageVisible } from '../shared/usePageVisible.ts'
@@ -19,7 +19,13 @@ const drive = new ColorDrive()
 const patternDrive = new PatternDrive()
 const wavesPointer = new WavesPointer()
 const rippleField = new RippleField()
-const clothFollow = new ClothFollow()
+const sphereSpin = new SphereSpin()
+
+// The pattern repeats once per turn of the ball, so a turn closes seamlessly.
+const PATTERN_PERIOD = { x: SPIN.PERIOD_PX, y: SPIN.PERIOD_PX }
+// The furthest the ripple field moves a point; Waves draws that much more
+// grid beyond each edge, so a stirred line's end never comes into view.
+const RIPPLE_REACH_PX = RIPPLE.MAX_RADIUS_PX * RIPPLE.MAX_DISPLACEMENT_SHARE
 
 // Deliberate: Waves' own cursor push stays off. The ripple field carries the
 // pointer's pull and spreads it; the push would add a second one that does
@@ -70,42 +76,40 @@ export default function Hero() {
     drive.reducedMotion = reducedMotion
     patternDrive.reducedMotion = reducedMotion
     wavesPointer.reducedMotion = reducedMotion
-    clothFollow.reducedMotion = reducedMotion
+    sphereSpin.reducedMotion = reducedMotion
   }, [reducedMotion])
 
+  // Called by Waves once per frame: where each point reads the pattern on the
+  // turning ball. The waves fill the hero, so hero-relative coordinates are
+  // the grid's.
+  const wavesSample = useCallback((lines: readonly (readonly GridPoint[])[]) => {
+    const hero = heroRef.current
+    if (!hero) return null
+    const rect = hero.getBoundingClientRect()
+    // performance.now(), like the drag's events: the frame time can be
+    // earlier than the release.
+    return sphereSpin.sample(lines, rect, performance.now())
+  }, [])
+
   // Called by Waves once per frame: the dragged or coasting pointer stirs the
-  // ripple field, and the dragged one alone pulls the whole field after it,
-  // which glides on after release;
-  // Waves draws the sum. The waves fill the hero, so hero-relative
-  // coordinates are the grid's. Reduced motion has neither.
+  // ripple field on top of the turning pattern. Reduced motion has none.
   const wavesDisplacement = useCallback(
     (lines: readonly (readonly GridPoint[])[], time: number) => {
       const hero = heroRef.current
       if (!hero || reducedMotion) {
         rippleField.reset()
-        clothFollow.reset()
         return null
       }
       const rect = hero.getBoundingClientRect()
       // performance.now(), like the drag's samples: the frame time can be
       // earlier than the release.
       const pointer = wavesPointer.at(performance.now(), { left: 0, top: 0, right: rect.width, bottom: rect.height })
-      const ripple = rippleField.step(lines, {
+      return rippleField.step(lines, {
         pointer,
         stroke: wavesPointer.stroke,
         now: time,
         radius: rippleRadius(rect.width, rect.height),
       })
-      // Deliberate: only the held pointer pulls the field, not the coast; once
-      // let go, the field glides on with its own momentum.
-      clothFollow.step({
-        pointer: wavesPointer.current,
-        stroke: wavesPointer.stroke,
-        now: time,
-        width: rect.width,
-        height: rect.height,
-      })
-      return clothFollow.displace(lines, ripple)
     },
     [reducedMotion],
   )
@@ -145,6 +149,10 @@ export default function Hero() {
       const rect = heroElement.getBoundingClientRect()
       return { x: event.clientX - rect.left, y: event.clientY - rect.top }
     }
+    function heroView() {
+      const rect = heroElement.getBoundingClientRect()
+      return { width: rect.width, height: rect.height }
+    }
 
     function onPointerDown(event: PointerEvent) {
       if (event.button === MIDDLE_BUTTON) {
@@ -156,13 +164,17 @@ export default function Hero() {
       if (!startsDrag(event.button, event.pointerType, activeRef.current, fromContent)) return
       drag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, moved: false }
       const point = heroPoint(event)
-      wavesPointer.grab(point.x, point.y, performance.now())
+      const now = performance.now()
+      wavesPointer.grab(point.x, point.y, now)
+      sphereSpin.grab(point, heroView(), now)
       setDragging(true)
     }
     function onPointerMove(event: PointerEvent) {
       if (!drag || event.pointerId !== drag.pointerId) return
       const point = heroPoint(event)
-      wavesPointer.move(point.x, point.y, performance.now())
+      const now = performance.now()
+      wavesPointer.move(point.x, point.y, now)
+      sphereSpin.drag(point, heroView(), now)
       if (drag.moved || !isDrag(event.clientX - drag.startX, event.clientY - drag.startY)) return
       drag.moved = true
       draggedRef.current = true
@@ -174,8 +186,13 @@ export default function Hero() {
       if (!drag || event.pointerId !== drag.pointerId) return
       const now = performance.now()
       // A cancelled pointer (the browser took over the gesture) was not flung.
-      if (event.type === 'pointercancel') wavesPointer.cancel()
-      else wavesPointer.release(now)
+      if (event.type === 'pointercancel') {
+        wavesPointer.cancel()
+        sphereSpin.cancel()
+      } else {
+        wavesPointer.release(now)
+        sphereSpin.release(now)
+      }
       drag = null
       setDragging(false)
     }
@@ -298,6 +315,8 @@ export default function Hero() {
         motion={waveMotion}
         pointer={noWavesPointer}
         displacement={wavesDisplacement}
+        sample={wavesSample}
+        patternPeriod={PATTERN_PERIOD}
         backgroundColor={heroBackgrounds[theme]}
         // With animations off the waves hold still, except while someone is
         // playing with the hero: stepped colors land instantly then, but the
@@ -305,8 +324,8 @@ export default function Hero() {
         paused={!pageVisible || (reducedMotion && !active)}
         xGap={12}
         yGap={36}
-        overscanX={FOLLOW.MAX_SHIFT_PX}
-        overscanY={FOLLOW.MAX_SHIFT_PX}
+        overscanX={RIPPLE_REACH_PX}
+        overscanY={RIPPLE_REACH_PX}
       />
       <div className="hero-content">
         <div className="hero-text">
