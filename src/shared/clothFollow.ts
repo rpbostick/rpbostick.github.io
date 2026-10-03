@@ -2,8 +2,9 @@
 // while the pointer is held, the field is shifted by a share of the pointer's
 // offset from the press point, through a soft, underdamped spring so it lags
 // and overshoots slightly. On release it does not spring back: it glides on
-// with the velocity it had, slowing with the pointer coast's friction, and
-// once slow drifts back to rest so gently (overdamped, over several seconds)
+// with the velocity it had, slowing with a third of the pointer coast's
+// friction, and once slow drifts back to rest so gently (overdamped, over
+// tens of seconds)
 // that the waves' own flow carries on from wherever it ended. The shift is
 // strongest at the pointer and falls off across the hero, so the field
 // stretches like cloth rather than sliding like a picture. It sits on top of
@@ -16,24 +17,34 @@ import type { Displacement, GridPoint, Point } from './rippleField.ts'
 export const FOLLOW = {
   // The field under the pointer heads for this share of the pointer's offset
   // from where it was pressed.
-  FOLLOW_SHARE: 0.15,
+  FOLLOW_SHARE: 0.3,
   // A drag's own pull is at most this share of the hero's shorter side.
-  CAP_SHARE: 0.06,
+  CAP_SHARE: 0.12,
   // The farthest the field is ever shifted, glide and a shift carried into a
   // new press included. Waves overscans its grid by this on each side (the
   // hero passes it), so the shifted lines still reach past the edges.
-  MAX_SHIFT_PX: 100,
-  // The spring towards the target while held, in 1/s² (ω = 7 rad/s), and its
-  // damping: ζ = DAMPING / (2ω) ≈ 0.64, which overshoots by about 7%.
-  STIFFNESS_PER_S2: 49,
-  DAMPING_PER_S: 9,
-  // Released, the speed decays as exp(-k·t), the coast's friction in
-  // momentum.ts: it halves every 0.58 s, so a glide fades over 1–3 s.
-  GLIDE_FRICTION_PER_S: MOMENTUM.FRICTION_PER_MS * 1000,
-  // And a weak pull back to rest, in 1/s². Below (k/2)² = 0.36 it is
-  // overdamped, so the return never wobbles; at 0.2 its slow part decays with
-  // a time constant of about 5 s.
-  RELAX_PER_S2: 0.2,
+  MAX_SHIFT_PX: 250,
+  // The spring towards the target while held, in 1/s² (ω = 5 rad/s, a heavy
+  // sheet that is slow to start following), and its damping:
+  // ζ = DAMPING / (2ω) = 0.64, which overshoots by about 7%.
+  STIFFNESS_PER_S2: 25,
+  DAMPING_PER_S: 6.4,
+  // Released, the speed decays as exp(-k·t), a third of the coast's friction
+  // in momentum.ts: it halves every 1.7 s.
+  GLIDE_FRICTION_PER_S: (MOMENTUM.FRICTION_PER_MS * 1000) / 3,
+  // A glide is over once it is slower than this (0.03 px a frame at 60 Hz),
+  // so it lasts about ln(speed / GLIDE_END) / k: 3.5 s from the 8 px/s a
+  // 50 px/s drag lets go at. The release speed is limited so friction alone
+  // would end a glide within MAX_GLIDE_S; a hard fling glides about 8.5 s.
+  GLIDE_END_SPEED_PX_S: 2,
+  MAX_GLIDE_S: 9,
+  // And a weak pull back to rest, in 1/s². Below (k/2)² = 0.04 it is
+  // overdamped, so the return never wobbles; its slow part decays with a time
+  // constant of about 10 s. It fades in as an outward glide slows (e⁻¹ of it
+  // at RELAX_SPEED_PX_S outward, all of it once still or heading back), so
+  // it does not cut a glide short.
+  RELAX_PER_S2: 0.03,
+  RELAX_SPEED_PX_S: 1,
   // The falloff: a point FAR_DISTANCE_SHARE of the hero's diagonal from the
   // pointer follows FAR_WEIGHT of the shift (Gaussian in between and beyond).
   FAR_DISTANCE_SHARE: 0.75,
@@ -244,17 +255,23 @@ export class ClothFollow {
     if (this.held) {
       this.held = false
       // A free glide covers speed / friction; slowing the release keeps it
-      // within MAX_SHIFT_PX, so the field never stops dead at the limit.
+      // within MAX_SHIFT_PX, so the field never stops dead at the limit, and
+      // within MAX_GLIDE_S.
       const room = Math.max(0, options.MAX_SHIFT_PX - Math.hypot(this.shiftX, this.shiftY)) * options.GLIDE_FRICTION_PER_S
+      const longest = options.GLIDE_END_SPEED_PX_S * Math.exp(options.GLIDE_FRICTION_PER_S * options.MAX_GLIDE_S)
+      const limit = Math.min(room, longest)
       const speed = Math.hypot(this.speedX, this.speedY)
-      if (speed > room) {
-        this.speedX *= room / speed
-        this.speedY *= room / speed
+      if (speed > limit) {
+        this.speedX *= limit / speed
+        this.speedY *= limit / speed
       }
     }
     const decay = Math.exp(-options.GLIDE_FRICTION_PER_S * dt)
-    this.speedX = this.speedX * decay - options.RELAX_PER_S2 * this.shiftX * dt
-    this.speedY = this.speedY * decay - options.RELAX_PER_S2 * this.shiftY * dt
+    const size = Math.hypot(this.shiftX, this.shiftY)
+    const outward = size > 0 ? Math.max(0, (this.speedX * this.shiftX + this.speedY * this.shiftY) / size) : 0
+    const relax = options.RELAX_PER_S2 * Math.exp(-outward / options.RELAX_SPEED_PX_S)
+    this.speedX = this.speedX * decay - relax * this.shiftX * dt
+    this.speedY = this.speedY * decay - relax * this.shiftY * dt
     this.move(dt)
   }
 

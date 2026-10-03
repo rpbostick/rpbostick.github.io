@@ -1,7 +1,7 @@
 // Checks the hero's global follow: a held drag pulls the field to a share of
 // its offset (capped) through a spring that lags and overshoots a little, the
-// pull falls off away from the pointer, a release glides on and slows without
-// springing back, then eases to rest without a jump, a new press takes over
+// pull falls off away from the pointer, a release glides on and slows over 3
+// to 9 s without springing back, then eases to rest without a jump, a new press takes over
 // smoothly, the result does not depend on the frame rate, the lines cover the
 // edges, and reduced motion has none.
 // Run: node scripts/check-cloth-follow.ts
@@ -72,14 +72,17 @@ const checks: [string, () => void][] = [
   [
     'a held drag converges to the follow share of its offset',
     () => {
+      assert.equal(FOLLOW.FOLLOW_SHARE, 0.3)
       const shift = run(dragBy(120, -80), 3000).shift
-      close(shift.x, 120 * FOLLOW.FOLLOW_SHARE, 0.05, 'x')
-      close(shift.y, -80 * FOLLOW.FOLLOW_SHARE, 0.05, 'y')
+      close(shift.x, 36, 0.05, 'x')
+      close(shift.y, -24, 0.05, 'y')
     },
   ],
   [
     'a long drag is capped at the share of the shorter side',
     () => {
+      // 12% of the 800 px side.
+      assert.equal(CAP, 96)
       const shift = run(dragBy(900, 600), 3000).shift
       close(Math.hypot(shift.x, shift.y), CAP, 0.05, 'shift')
       close(Math.atan2(shift.y, shift.x), Math.atan2(600, 900), 1e-3, 'direction')
@@ -129,7 +132,7 @@ const checks: [string, () => void][] = [
       let atRelease: Point | null = null
       let speedAtRelease = 0
       const after: { now: number; x: number; speed: number }[] = []
-      run(path, releaseMs + 3000, 1000 / 60, (follow, now) => {
+      run(path, releaseMs + 10000, 1000 / 60, (follow, now) => {
         if (Math.abs(now - releaseMs) < 1e-6) {
           atRelease = follow.shift
           speedAtRelease = follow.velocity.x
@@ -147,7 +150,33 @@ const checks: [string, () => void][] = [
       assert.ok(halfSecond.x - start > 5, `it glided ${halfSecond.x - start} px on in half a second`)
       assert.ok(halfSecond.speed < speedAtRelease * 0.75, `slowed from ${speedAtRelease} to ${halfSecond.speed} px/s`)
       const twoSeconds = after.find((sample) => sample.now - releaseMs >= 2000)
-      assert.ok(twoSeconds && Math.abs(twoSeconds.speed) < speedAtRelease * 0.15, `still at ${twoSeconds?.speed} px/s after 2 s`)
+      assert.ok(twoSeconds && twoSeconds.speed > 10, `only ${twoSeconds?.speed} px/s after 2 s`)
+      const eightSeconds = after.find((sample) => sample.now - releaseMs >= 8000)
+      assert.ok(eightSeconds && eightSeconds.speed < FOLLOW.GLIDE_END_SPEED_PX_S * 2, `still at ${eightSeconds?.speed} px/s after 8 s`)
+    },
+  ],
+  [
+    'a slow fling glides about 3 s, a hard one about 9 s, and none longer',
+    () => {
+      // The time from release until the field is slower than the glide's end.
+      const glide = (pxPerMs: number) => {
+        const releaseMs = 300
+        const path: Path = (ms) => (ms < releaseMs ? { x: PRESS.x + ms * pxPerMs, y: PRESS.y } : null)
+        let end: number | null = null
+        run(path, releaseMs + 15000, 1000 / 60, (follow, now) => {
+          if (now > releaseMs && end === null && follow.velocity.x < FOLLOW.GLIDE_END_SPEED_PX_S) end = now - releaseMs
+        })
+        assert.ok(end !== null, `a ${pxPerMs * 1000} px/s drag glided over 15 s`)
+        return end / 1000
+      }
+      const slow = glide(0.05)
+      assert.ok(slow > 2.5 && slow < 4, `a 50 px/s drag glided ${slow} s`)
+      const medium = glide(0.2)
+      assert.ok(medium > slow + 1 && medium < 8, `a 200 px/s drag glided ${medium} s`)
+      for (const pxPerMs of [0.8, 4]) {
+        const hard = glide(pxPerMs)
+        assert.ok(hard > 8 && hard <= FOLLOW.MAX_GLIDE_S, `a ${pxPerMs * 1000} px/s drag glided ${hard} s`)
+      }
     },
   ],
   [
@@ -162,7 +191,7 @@ const checks: [string, () => void][] = [
       let crossed = false
       let restAt: number | null = null
       let shiftAt3s = 0
-      const follow = run(path, 60000, 1000 / 60, (field, now, moving) => {
+      const follow = run(path, 150000, 1000 / 60, (field, now, moving) => {
         const shift = field.shift
         if (previous && now > releaseMs) {
           const step = shift.x - previous.x

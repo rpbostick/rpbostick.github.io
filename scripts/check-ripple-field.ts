@@ -143,6 +143,10 @@ const checks: [string, () => void][] = [
       let shortest = Infinity
       let longest = 0
       let most = 0
+      // The least a point stays right of its left neighbour and below the one
+      // above, in px: negative would mean crossed lines.
+      let leastAcross = Infinity
+      let leastAlong = Infinity
       for (let now = 0; now <= 3000; now += 1000 / 60) {
         // Wide fast sweeps with tight circles and random jumps on top:
         // thousands of px/s.
@@ -162,11 +166,13 @@ const checks: [string, () => void][] = [
             const across = Math.hypot(X_GAP + displacement.x[k + POINTS] - displacement.x[k], displacement.y[k + POINTS] - displacement.y[k]) / X_GAP
             shortest = Math.min(shortest, across)
             longest = Math.max(longest, across)
+            leastAcross = Math.min(leastAcross, X_GAP + displacement.x[k + POINTS] - displacement.x[k])
           }
           if (index + 1 < POINTS) {
             const along = Math.hypot(displacement.x[k + 1] - displacement.x[k], Y_GAP + displacement.y[k + 1] - displacement.y[k]) / Y_GAP
             shortest = Math.min(shortest, along)
             longest = Math.max(longest, along)
+            leastAlong = Math.min(leastAlong, Y_GAP + displacement.y[k + 1] - displacement.y[k])
           }
         }
       }
@@ -174,6 +180,8 @@ const checks: [string, () => void][] = [
       assert.ok(most > limit * 0.95, `the drag reached the limit: ${most} px`)
       assert.ok(shortest > RIPPLE.MIN_STRETCH * 0.6, `shortest link ${shortest} of its rest length`)
       assert.ok(longest < RIPPLE.MAX_STRETCH * 1.2, `longest link ${longest} of its rest length`)
+      assert.ok(leastAcross > 0, `neighbouring lines crossed: ${leastAcross} px apart`)
+      assert.ok(leastAlong > 0, `a line folded back on itself: ${leastAlong} px`)
     },
   ],
   [
@@ -207,6 +215,30 @@ const checks: [string, () => void][] = [
       }
       for (let index = 1; index < winds.length; index++) assert.ok(winds[index] <= winds[index - 1])
       assert.equal(field.wind, 0, 'unwound within 3.5 s')
+    },
+  ],
+  [
+    'the pull and the swirl are about twice as strong as at half their strength, not cut off by the limit',
+    () => {
+      assert.equal(RIPPLE.SWIRL_ACCEL_RADII_PER_S2, 12)
+      // A steady 600 px/s drag through the center, still held, against the
+      // pull at half strength (8/s towards 0.7 of the pointer's velocity).
+      const half = { ...RIPPLE, PULL_PER_S: 8, PULL_SHARE: 0.7, MAX_DISPLACEMENT_SHARE: 0.5 }
+      const drag: Path = (ms) => ({ x: CENTER.x - 180 + 0.6 * ms, y: CENTER.y })
+      for (const ms of [100, 300, 600]) {
+        const full = run(drag, ms).displacement
+        const weak = run(drag, ms, 1000 / 60, new RippleField(half)).displacement
+        assert.ok(full && weak)
+        const stretch = largest(full) / largest(weak)
+        assert.ok(stretch > 1.8 && stretch < 2.3, `${ms} ms in, the drag moved the lines ${largest(full)} px, ${stretch}× as far`)
+      }
+
+      const halfSwirl = new RippleField({ ...RIPPLE, SWIRL_ACCEL_RADII_PER_S2: RIPPLE.SWIRL_ACCEL_RADII_PER_S2 / 2 })
+      const twist = meanTwist(run(circling(1, 1600), 1600).displacement as Displacement, CENTER)
+      const weakTwist = meanTwist(run(circling(1, 1600), 1600, 1000 / 60, halfSwirl).displacement as Displacement, CENTER)
+      // The circling's own pull twists the lines too, so the swirl's share
+      // doubling raises the whole by less than 2×.
+      assert.ok(twist / weakTwist > 1.4, `circling twisted the lines ${twist / weakTwist}× as far`)
     },
   ],
   [
@@ -282,7 +314,7 @@ const checks: [string, () => void][] = [
       const fresh = pressed(2)
       const stale = pressed(1)
       assert.ok(
-        Math.abs(fresh.moved - baseline) < 0.25 && stale.moved > baseline + 2,
+        Math.abs(fresh.moved - baseline) < baseline * 0.2 && stale.moved > baseline + 2,
         `under the press: ${baseline} px without it, ${fresh.moved} px as a new stroke, ${stale.moved} px as the old one`,
       )
       assert.equal(fresh.wind, 0, 'a new press starts without wind')

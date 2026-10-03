@@ -22,9 +22,10 @@ export const RIPPLE = {
   // from the pointer feels e^-2 ≈ 14% of its pull.
   FALLOFF_SHARE: 0.5,
   // Points under the pointer take on PULL_SHARE of its velocity at this rate
-  // (scaled by the falloff). Higher drags the lines harder.
-  PULL_PER_S: 8,
-  PULL_SHARE: 0.7,
+  // (scaled by the falloff). Higher drags the lines harder: 12/s towards all
+  // of it stretches them about twice as far as 8/s towards 0.7 of it.
+  PULL_PER_S: 12,
+  PULL_SHARE: 1,
   // How fast a ripple travels through the mesh, in radii per second. It sets
   // the coupling stiffness between neighbours, c² / gap², along each line and
   // across to the adjacent lines alike.
@@ -34,8 +35,9 @@ export const RIPPLE = {
   ANCHOR_PER_S2: 25,
   // Velocity damping. The ripple's amplitude falls by e every 2 / DAMPING s.
   DAMPING_PER_S: 4,
-  // No point moves further than this share of the radius from its place.
-  MAX_DISPLACEMENT_SHARE: 0.5,
+  // No point moves further than this share of the radius from its place:
+  // room for a 600 ms drag's stretch at the pull above.
+  MAX_DISPLACEMENT_SHARE: 0.8,
   // A link between neighbours stays between these shares of its rest length.
   MIN_STRETCH: 0.4,
   MAX_STRETCH: 2.5,
@@ -47,7 +49,7 @@ export const RIPPLE = {
   MAX_WIND: 4,
   // Tangential acceleration per unit of wind one σ from the vortex center,
   // in radii per s².
-  SWIRL_ACCEL_RADII_PER_S2: 6,
+  SWIRL_ACCEL_RADII_PER_S2: 12,
   // Unwinding: the wind decays at UNWIND_PER_S and also loses
   // UNWIND_FLOOR_PER_S outright, so it reaches zero rather than lingering.
   UNWIND_PER_S: 1,
