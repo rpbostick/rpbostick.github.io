@@ -25,7 +25,7 @@ import { releaseVelocity, MOMENTUM, type Point } from './momentum.ts'
 // The share of the pointer's movement the ball turns, held and spinning on:
 // at 1 the point under the pointer stays under it; below, the spin is a
 // gentle turn under the cloth follow's stretch rather than the whole motion.
-export const SPIN_SCALE = 0.2
+export const SPIN_SCALE = 0.1
 
 export const SPIN = {
   // One full turn of the ball, across and down alike, in pattern pixels.

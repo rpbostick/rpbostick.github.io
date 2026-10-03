@@ -89,9 +89,9 @@ const checks: [string, () => void][] = [
     },
   ],
   [
-    'a drag turns the ball SPIN_SCALE = 0.2 of the 1:1 grab, across and down',
+    'a drag turns the ball SPIN_SCALE = 0.1 of the 1:1 grab, across and down',
     () => {
-      assert.equal(SPIN_SCALE, 0.2)
+      assert.equal(SPIN_SCALE, 0.1)
       assert.equal(SPIN.SCALE, SPIN_SCALE)
       for (const [from, dx, dy] of [
         [CENTER, 300, 0],
@@ -301,9 +301,11 @@ const checks: [string, () => void][] = [
           close(read(at.x[k], at.y[k]), read(bent.x - unwrapped.x, bent.y - unwrapped.y), 1e-9, `noise at ${point.x}, ${point.y}, ${now} ms`)
         })
       }
+      // The fling is scaled with SPIN_SCALE so it turns far enough to wrap at any setting.
+      const pull = 2 * (0.2 / SPIN_SCALE)
       spin.grab(CENTER, VIEW, 0)
       for (let t = 8; t <= 200; t += 8) {
-        spin.drag({ x: CENTER.x - 2 * t, y: CENTER.y - 2 * t }, VIEW, t)
+        spin.drag({ x: CENTER.x - pull * t, y: CENTER.y - pull * t }, VIEW, t)
         compare(t)
       }
       spin.release(200)
