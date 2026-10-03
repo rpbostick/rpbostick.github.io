@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react'
 import Waves from '../reactbits/Waves/Waves.tsx'
+import { ClothFollow, FOLLOW } from '../shared/clothFollow.ts'
 import { useAnimations } from '../shared/motion.ts'
 import { RIPPLE, RippleField, rippleRadius, type GridPoint } from '../shared/rippleField.ts'
 import { SphereSpin, SPIN } from '../shared/sphereSpin.ts'
@@ -20,12 +21,14 @@ const patternDrive = new PatternDrive()
 const wavesPointer = new WavesPointer()
 const rippleField = new RippleField()
 const sphereSpin = new SphereSpin()
+const clothFollow = new ClothFollow()
 
 // The pattern repeats once per turn of the ball, so a turn closes seamlessly.
 const PATTERN_PERIOD = { x: SPIN.PERIOD_PX, y: SPIN.PERIOD_PX }
-// The furthest the ripple field moves a point; Waves draws that much more
-// grid beyond each edge, so a stirred line's end never comes into view.
-const RIPPLE_REACH_PX = RIPPLE.MAX_RADIUS_PX * RIPPLE.MAX_DISPLACEMENT_SHARE
+// The furthest the ripple field and the sheet together move a point; Waves
+// draws that much more grid beyond each edge, so a moved line's end never
+// comes into view.
+const DISPLACEMENT_REACH_PX = RIPPLE.MAX_RADIUS_PX * RIPPLE.MAX_DISPLACEMENT_SHARE + FOLLOW.MAX_SHIFT_PX
 
 // Deliberate: Waves' own cursor push stays off. The ripple field carries the
 // pointer's pull and spreads it; the push would add a second one that does
@@ -77,6 +80,7 @@ export default function Hero() {
     patternDrive.reducedMotion = reducedMotion
     wavesPointer.reducedMotion = reducedMotion
     sphereSpin.reducedMotion = reducedMotion
+    clothFollow.reducedMotion = reducedMotion
   }, [reducedMotion])
 
   // Called by Waves once per frame: where each point reads the pattern on the
@@ -92,24 +96,37 @@ export default function Hero() {
   }, [])
 
   // Called by Waves once per frame: the dragged or coasting pointer stirs the
-  // ripple field on top of the turning pattern. Reduced motion has none.
+  // ripple field, and the dragged one alone stretches the whole field after
+  // it like a sheet, which glides on after release; Waves draws the sum on
+  // top of the turning pattern. Reduced motion has neither.
   const wavesDisplacement = useCallback(
     (lines: readonly (readonly GridPoint[])[], time: number) => {
       const hero = heroRef.current
       if (!hero || reducedMotion) {
         rippleField.reset()
+        clothFollow.reset()
         return null
       }
       const rect = hero.getBoundingClientRect()
       // performance.now(), like the drag's samples: the frame time can be
       // earlier than the release.
       const pointer = wavesPointer.at(performance.now(), { left: 0, top: 0, right: rect.width, bottom: rect.height })
-      return rippleField.step(lines, {
+      const ripple = rippleField.step(lines, {
         pointer,
         stroke: wavesPointer.stroke,
         now: time,
         radius: rippleRadius(rect.width, rect.height),
       })
+      // Deliberate: only the held pointer pulls the sheet, not the coast; once
+      // let go, the sheet glides on with its own momentum.
+      clothFollow.step({
+        pointer: wavesPointer.current,
+        stroke: wavesPointer.stroke,
+        now: time,
+        width: rect.width,
+        height: rect.height,
+      })
+      return clothFollow.displace(lines, ripple)
     },
     [reducedMotion],
   )
@@ -324,8 +341,8 @@ export default function Hero() {
         paused={!pageVisible || (reducedMotion && !active)}
         xGap={12}
         yGap={36}
-        overscanX={RIPPLE_REACH_PX}
-        overscanY={RIPPLE_REACH_PX}
+        overscanX={DISPLACEMENT_REACH_PX}
+        overscanY={DISPLACEMENT_REACH_PX}
       />
       <div className="hero-content">
         <div className="hero-text">

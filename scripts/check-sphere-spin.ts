@@ -1,18 +1,22 @@
 // Checks the hero's ball: a drag across turns it as much as the same drag
-// down, the point under the pointer stays under it, a release spins on the
-// way it was pulled and slows to a stop within 3 to 9 s without turning back,
-// the result does not depend on the frame rate, the turn wraps without a
-// seam in Waves' periodic noise, a press catches a spin where it is, and
-// reduced motion neither turns nor spins.
+// down, at SPIN_SCALE (1 keeps the point under the pointer under it), a
+// release spins on the way it was pulled at SPIN_SCALE of the full spin and
+// slows to a stop within 3 to 9 s without turning back, the result does not
+// depend on the frame rate, the turn wraps without a seam in Waves' periodic
+// noise, a press catches a spin where it is, reduced motion neither turns nor
+// spins, and with the cloth follow on top the two stay bounded and settle.
 // Run: node scripts/check-sphere-spin.ts
 import assert from 'node:assert/strict'
 import { MAX_NOISE_PERIOD, Noise, NOISE_SCALE, noisePeriod } from '../src/reactbits/Waves/noise.ts'
+import { ClothFollow, FOLLOW } from '../src/shared/clothFollow.ts'
 import type { Point } from '../src/shared/momentum.ts'
-import { curved, SPIN, SphereSpin, spinSeconds, wrap, type View } from '../src/shared/sphereSpin.ts'
+import { curved, SPIN, SPIN_SCALE, SphereSpin, spinSeconds, wrap, type View } from '../src/shared/sphereSpin.ts'
 
 const VIEW: View = { width: 1280, height: 800 }
 const CENTER: Point = { x: 640, y: 400 }
 const PERIOD = SPIN.PERIOD_PX
+// The 1:1 grab the hero's spin is a share of.
+const FULL = { ...SPIN, SCALE: 1 }
 
 // A press at `from`, moved in a straight line to `from + (dx, dy)` over
 // `ms` with an event every 8 ms, released at the end. Returns the release time.
@@ -81,11 +85,66 @@ const checks: [string, () => void][] = [
       diagonal.drag({ x: CENTER.x + 120, y: CENTER.y + 120 }, VIEW, 100)
       const both = diagonal.orientation(100)
       close(both.yaw, both.pitch, 1e-12, 'diagonal')
-      assert.ok(both.yaw > 0.05, `diagonal yawed ${both.yaw}`)
+      assert.ok(both.yaw > 0.05 * SPIN_SCALE, `diagonal yawed ${both.yaw}`)
     },
   ],
   [
-    'the point under the pointer stays under it during a drag',
+    'a drag turns the ball SPIN_SCALE = 0.2 of the 1:1 grab, across and down',
+    () => {
+      assert.equal(SPIN_SCALE, 0.2)
+      assert.equal(SPIN.SCALE, SPIN_SCALE)
+      for (const [from, dx, dy] of [
+        [CENTER, 300, 0],
+        [CENTER, 0, -250],
+        [{ x: 100, y: 80 }, 900, 600],
+        [{ x: 1200, y: 700 }, -1100, -50],
+      ] as const) {
+        const gentle = new SphereSpin()
+        const full = new SphereSpin(FULL)
+        gentle.grab(from, VIEW, 0)
+        full.grab(from, VIEW, 0)
+        for (let step = 1; step <= 20; step++) {
+          const point = { x: from.x + (dx * step) / 20, y: from.y + (dy * step) / 20 }
+          gentle.drag(point, VIEW, step * 10)
+          full.drag(point, VIEW, step * 10)
+          const turned = gentle.advance(step * 10)
+          const fullTurn = full.advance(step * 10)
+          close(turned.x, fullTurn.x * SPIN_SCALE, 1e-9, `yaw at step ${step} of ${dx}, ${dy}`)
+          close(turned.y, fullTurn.y * SPIN_SCALE, 1e-9, `pitch at step ${step} of ${dx}, ${dy}`)
+        }
+        if (dx !== 0) assert.ok(Math.abs(full.advance(200).x) > 100, `the full grab yawed only ${full.advance(200).x}`)
+        if (dy !== 0) assert.ok(Math.abs(full.advance(200).y) > 40, `the full grab pitched only ${full.advance(200).y}`)
+      }
+    },
+  ],
+  [
+    'a release spins at SPIN_SCALE of the full spin, for as long',
+    () => {
+      for (const [dx, dy] of [
+        [300, 0],
+        [0, -300],
+        [1000, -1000],
+        [6, 3],
+      ]) {
+        const gentle = new SphereSpin()
+        const full = new SphereSpin(FULL)
+        const release = fling(gentle, CENTER, dx, dy, 200)
+        fling(full, CENTER, dx, dy, 200)
+        const gentleFrom = gentle.advance(release)
+        const fullFrom = full.advance(release)
+        assert.equal(gentle.spinning, full.spinning, `spinning differs for ${dx}, ${dy}`)
+        for (let now = release; now < release + 10000; now += 250) {
+          const gentleTurn = gentle.advance(now)
+          const fullTurn = full.advance(now)
+          close(signedStep(gentleTurn.x, gentleFrom.x), signedStep(fullTurn.x, fullFrom.x) * SPIN_SCALE, 1e-6, `yaw spun by ${now - release} ms`)
+          close(signedStep(gentleTurn.y, gentleFrom.y), signedStep(fullTurn.y, fullFrom.y) * SPIN_SCALE, 1e-6, `pitch spun by ${now - release} ms`)
+          assert.equal(gentle.spinning, full.spinning, `one stopped first at ${now - release} ms`)
+        }
+      }
+    },
+  ],
+  [
+    'at scale 1 the point under the pointer stays under it during a drag',
     () => {
       for (const [from, dx, dy] of [
         [CENTER, 400, 0],
@@ -93,7 +152,7 @@ const checks: [string, () => void][] = [
         [{ x: 100, y: 80 }, 900, 600],
         [{ x: 1200, y: 700 }, -1100, -50],
       ] as const) {
-        const spin = new SphereSpin()
+        const spin = new SphereSpin(FULL)
         const grabbed = patternAt(spin, from, 0)
         spin.grab(from, VIEW, 0)
         for (let step = 1; step <= 40; step++) {
@@ -250,7 +309,7 @@ const checks: [string, () => void][] = [
       spin.release(200)
       for (let now = 200; now < 10000; now += 1000 / 60) compare(now)
       assert.equal(spin.spinning, false)
-      assert.ok(unwrapped.x < -1000 && unwrapped.y < -1000, `turned only ${unwrapped.x}, ${unwrapped.y}`)
+      assert.ok(unwrapped.x < -300 && unwrapped.y < -300, `turned only ${unwrapped.x}, ${unwrapped.y}`)
       assert.ok(crossings >= 1, 'the turn never wrapped')
     },
   ],
@@ -306,6 +365,48 @@ const checks: [string, () => void][] = [
       assert.equal(spin.spinning, false)
       assert.ok(circular(after.x, before.x, PERIOD) < 1e-9, `stopping moved the ball from ${before.x} to ${after.x}`)
       assert.ok(circular(spin.advance(release + 5000).x, before.x, PERIOD) < 1e-9, 'the ball moved after stopping')
+    },
+  ],
+  [
+    'the spin and the cloth follow together stay bounded, settle, and are off with reduced motion',
+    () => {
+      for (const reducedMotion of [false, true]) {
+        const spin = new SphereSpin()
+        const follow = new ClothFollow()
+        spin.reducedMotion = reducedMotion
+        follow.reducedMotion = reducedMotion
+        const grid = [0, 400, 1280].map((x) => [0, 400, 800].map((y) => ({ x, y })))
+        const releaseMs = 1500
+        // A violent zig-zag held for 1.5 s, then a fling, as the hero feeds both.
+        const pointerAt = (ms: number): Point => ({ x: CENTER.x + 600 * Math.sign(Math.sin(ms / 40)), y: CENTER.y + 300 * Math.sin(ms / 70) })
+        spin.grab(pointerAt(0), VIEW, 0)
+        let spinStoppedAt: number | null = null
+        let largestShift = 0
+        let lastShift = 0
+        for (let now = 0; now <= 150000; now += 1000 / 60) {
+          const held = now < releaseMs
+          const pointer = held ? pointerAt(now) : null
+          if (pointer) spin.drag(pointer, VIEW, now)
+          else if (spin.held) spin.release(now)
+          follow.step({ pointer, stroke: 1, now, width: VIEW.width, height: VIEW.height })
+          const read = spin.sample(grid, VIEW, now)
+          for (let k = 0; k < read.x.length; k++) {
+            assert.ok(Number.isFinite(read.x[k]) && Number.isFinite(read.y[k]), `point ${k} reads ${read.x[k]}, ${read.y[k]} at ${now} ms`)
+          }
+          const shift = Math.hypot(follow.shift.x, follow.shift.y)
+          largestShift = Math.max(largestShift, shift)
+          if (!held && spinStoppedAt === null && !spin.spinning) spinStoppedAt = now - releaseMs
+          lastShift = shift
+        }
+        if (reducedMotion) {
+          assert.deepEqual(spin.orientation(150000), { yaw: 0, pitch: 0 })
+          assert.equal(largestShift, 0)
+        } else {
+          assert.ok(largestShift > 50 && largestShift <= FOLLOW.MAX_SHIFT_PX, `the sheet's shift reached ${largestShift} px`)
+          assert.ok(spinStoppedAt !== null && spinStoppedAt <= SPIN.MAX_SPIN_S * 1000 + 20, `the spin stopped ${spinStoppedAt} ms after release`)
+          assert.ok(follow.atRest && lastShift === 0, `the sheet still holds ${lastShift} px after 150 s`)
+        }
+      }
     },
   ],
   [

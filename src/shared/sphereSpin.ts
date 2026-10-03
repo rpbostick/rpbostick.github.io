@@ -1,9 +1,10 @@
 // The wave pattern as the inside of a ball around the viewer. A drag turns
-// the ball so the bit of pattern under the pointer stays under it: across
-// turns it about the vertical axis (yaw), down about the horizontal one
-// (pitch), a diagonal both. Let go, the ball keeps turning the way it was
-// pulled and slows over 3 to 9 s, heavier for a harder fling, and stays where
-// it stops. A new press catches it where it is.
+// the ball gently the way it is pulled, SPIN_SCALE of the turn that would keep
+// the bit of pattern under the pointer under it: across turns it about the
+// vertical axis (yaw), down about the horizontal one (pitch), a diagonal both.
+// Let go, the ball keeps turning the way it was pulled at SPIN_SCALE of the
+// pointer's speed and slows over 3 to 9 s, longer for a harder fling, and
+// stays where it stops. A new press catches it where it is.
 //
 // The screen is a window onto the ball's inside, so the pattern bends a little
 // towards the edges (a barrel, as a wide lens sees the inside of a sphere):
@@ -21,6 +22,11 @@
 
 import { releaseVelocity, MOMENTUM, type Point } from './momentum.ts'
 
+// The share of the pointer's movement the ball turns, held and spinning on:
+// at 1 the point under the pointer stays under it; below, the spin is a
+// gentle turn under the cloth follow's stretch rather than the whole motion.
+export const SPIN_SCALE = 0.2
+
 export const SPIN = {
   // One full turn of the ball, across and down alike, in pattern pixels.
   // Waves repeats its pattern on this period (16 noise cells across, 12
@@ -31,17 +37,19 @@ export const SPIN = {
   // ball of the radius above, 0 is flat. At 0.8 a point 700 px from the
   // middle reads the pattern 6% nearer it than a flat view would.
   CURVATURE: 0.8,
-  // Pattern pixels the ball turns per curved pixel the pointer moves; at 1
-  // the point under the pointer stays under it.
-  GRAB_SENSITIVITY: 1,
-  // A released spin lasts from MIN_SPIN_S (a slow fling) to MAX_SPIN_S (one
-  // at MAX_SPIN_PX_S or faster), longer by the log of the speed, and its
-  // speed decays exponentially to END_SPEED_PX_S in that time.
+  // Pattern pixels the ball turns per curved pixel the pointer moves.
+  SCALE: SPIN_SCALE,
+  // The speeds below are the pointer's, in curved px/s; the ball spins at
+  // SCALE of them. A released spin lasts from MIN_SPIN_S (a slow fling) to
+  // MAX_SPIN_S (one at MAX_SPIN_PX_S or faster), longer by the log of the
+  // speed, and its speed decays exponentially to END_SPEED_PX_S in that time,
+  // so the timing does not depend on SCALE.
   MIN_SPIN_S: 3,
   MAX_SPIN_S: 9,
   // A release slower than this does not spin at all.
   MIN_FLING_PX_S: 30,
-  // The fastest the ball spins, about 3.1 rad/s; a harder fling is slowed to it.
+  // A harder fling counts as this fast; at SCALE 1 the ball then spins about
+  // 3.1 rad/s.
   MAX_SPIN_PX_S: 4000,
   END_SPEED_PX_S: 2,
   SAMPLE_WINDOW_MS: MOMENTUM.SAMPLE_WINDOW_MS,
@@ -152,8 +160,9 @@ export class SphereSpin {
     this.spin = null
     const period = this.options.PERIOD_PX
     this.turn = { x: wrap(this.turn.x, period), y: wrap(this.turn.y, period) }
-    this.grip = { press: curved(point, view, this.options), anchor: this.turn }
-    this.samples = [{ ...this.turn, time: now }]
+    const press = curved(point, view, this.options)
+    this.grip = { press, anchor: this.turn }
+    this.samples = [{ ...press, time: now }]
   }
 
   drag(point: Point, view: View, now: number) {
@@ -162,32 +171,33 @@ export class SphereSpin {
     const grip = this.grip
     if (!grip || this.reducedMotion) return
     const at = curved(point, view, this.options)
-    const sensitivity = this.options.GRAB_SENSITIVITY
+    const scale = this.options.SCALE
     this.turn = {
-      x: grip.anchor.x + (at.x - grip.press.x) * sensitivity,
-      y: grip.anchor.y + (at.y - grip.press.y) * sensitivity,
+      x: grip.anchor.x + (at.x - grip.press.x) * scale,
+      y: grip.anchor.y + (at.y - grip.press.y) * scale,
     }
-    this.samples.push({ ...this.turn, time: now })
+    // The pointer's own path, so the spin's timing is the pointer's.
+    this.samples.push({ ...at, time: now })
     const oldest = now - this.options.SAMPLE_WINDOW_MS
     // The last sample stays: the spin starts from it.
     while (this.samples.length > 1 && this.samples[0].time < oldest) this.samples.shift()
   }
 
-  // Lets go: the ball spins on at the drag's last speed, or stays put.
+  // Lets go: the ball spins on at SCALE of the pointer's last speed, or
+  // stays put.
   release(now: number) {
     if (!Number.isFinite(now)) throw new Error(`SphereSpin: bad time ${now}`)
     if (!this.grip) return
     this.grip = null
     const perMs = releaseVelocity(this.samples, now, this.options.SAMPLE_WINDOW_MS)
     this.samples = []
-    let velocity = { x: perMs.x * 1000, y: perMs.y * 1000 }
-    const speed = Math.hypot(velocity.x, velocity.y)
-    if (speed > this.options.MAX_SPIN_PX_S) {
-      velocity = { x: (velocity.x * this.options.MAX_SPIN_PX_S) / speed, y: (velocity.y * this.options.MAX_SPIN_PX_S) / speed }
-    }
-    const seconds = spinSeconds(Math.min(speed, this.options.MAX_SPIN_PX_S), this.options)
+    const speed = Math.hypot(perMs.x, perMs.y) * 1000
+    const pointerSpeed = Math.min(speed, this.options.MAX_SPIN_PX_S)
+    const seconds = spinSeconds(pointerSpeed, this.options)
     if (this.reducedMotion || seconds === 0) return
-    const decay = Math.log(Math.hypot(velocity.x, velocity.y) / this.options.END_SPEED_PX_S) / seconds
+    const toSpin = (pointerSpeed / speed) * 1000 * this.options.SCALE
+    const velocity = { x: perMs.x * toSpin, y: perMs.y * toSpin }
+    const decay = Math.log(pointerSpeed / this.options.END_SPEED_PX_S) / seconds
     this.spin = { from: this.turn, velocity, start: now, decay, seconds }
   }
 
