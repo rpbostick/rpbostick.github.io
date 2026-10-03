@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react'
 import Waves from '../reactbits/Waves/Waves.tsx'
+import { ClothFollow, FOLLOW } from '../shared/clothFollow.ts'
 import { useAnimations } from '../shared/motion.ts'
 import { RippleField, rippleRadius, type GridPoint } from '../shared/rippleField.ts'
 import { useTheme } from '../shared/theme.ts'
@@ -18,6 +19,7 @@ const drive = new ColorDrive()
 const patternDrive = new PatternDrive()
 const wavesPointer = new WavesPointer()
 const rippleField = new RippleField()
+const clothFollow = new ClothFollow()
 
 // Deliberate: Waves' own cursor push stays off. The ripple field carries the
 // pointer's pull and spreads it; the push would add a second one that does
@@ -68,28 +70,41 @@ export default function Hero() {
     drive.reducedMotion = reducedMotion
     patternDrive.reducedMotion = reducedMotion
     wavesPointer.reducedMotion = reducedMotion
+    clothFollow.reducedMotion = reducedMotion
   }, [reducedMotion])
 
   // Called by Waves once per frame: the dragged or coasting pointer stirs the
-  // ripple field, whose offsets Waves draws. The waves fill the hero, so
-  // hero-relative coordinates are the grid's. Reduced motion has no ripples.
+  // ripple field, and the dragged one alone pulls the whole field after it;
+  // Waves draws the sum. The waves fill the hero, so hero-relative
+  // coordinates are the grid's. Reduced motion has neither.
   const wavesDisplacement = useCallback(
     (lines: readonly (readonly GridPoint[])[], time: number) => {
       const hero = heroRef.current
       if (!hero || reducedMotion) {
         rippleField.reset()
+        clothFollow.reset()
         return null
       }
       const rect = hero.getBoundingClientRect()
       // performance.now(), like the drag's samples: the frame time can be
       // earlier than the release.
       const pointer = wavesPointer.at(performance.now(), { left: 0, top: 0, right: rect.width, bottom: rect.height })
-      return rippleField.step(lines, {
+      const ripple = rippleField.step(lines, {
         pointer,
         stroke: wavesPointer.stroke,
         now: time,
         radius: rippleRadius(rect.width, rect.height),
       })
+      // Deliberate: the coast does not pull the field; the spring returns to
+      // rest as soon as the pointer is let go.
+      clothFollow.step({
+        pointer: wavesPointer.current,
+        stroke: wavesPointer.stroke,
+        now: time,
+        width: rect.width,
+        height: rect.height,
+      })
+      return clothFollow.displace(lines, ripple)
     },
     [reducedMotion],
   )
@@ -289,6 +304,7 @@ export default function Hero() {
         paused={!pageVisible || (reducedMotion && !active)}
         xGap={12}
         yGap={36}
+        overscanX={FOLLOW.MAX_SHIFT_PX}
       />
       <div className="hero-content">
         <div className="hero-text">

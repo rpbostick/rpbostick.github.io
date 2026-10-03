@@ -126,6 +126,7 @@ interface Config {
   maxCursorMove: number;
   xGap: number;
   yGap: number;
+  overscanX: number;
 }
 
 type Motion = Pick<
@@ -154,6 +155,9 @@ interface WavesProps {
   waveAmpY?: number;
   xGap?: number;
   yGap?: number;
+  // Extra lines this many pixels beyond each side, for a displacement that
+  // shifts the lines sideways further than the 100 px the grid already has.
+  overscanX?: number;
   friction?: number;
   tension?: number;
   maxCursorMove?: number;
@@ -172,6 +176,7 @@ const Waves: React.FC<WavesProps> = ({
   waveAmpY = 16,
   xGap = 10,
   yGap = 32,
+  overscanX = 0,
   friction = 0.925,
   tension = 0.005,
   maxCursorMove = 100,
@@ -220,7 +225,8 @@ const Waves: React.FC<WavesProps> = ({
     tension,
     maxCursorMove,
     xGap,
-    yGap
+    yGap,
+    overscanX
   });
   const motionRef = useRef(motion);
   const pointerRef = useRef(pointer);
@@ -257,9 +263,10 @@ const Waves: React.FC<WavesProps> = ({
       tension,
       maxCursorMove,
       xGap,
-      yGap
+      yGap,
+      overscanX
     };
-  }, [lineColor, waveSpeedX, waveSpeedY, waveAmpX, waveAmpY, friction, tension, maxCursorMove, xGap, yGap]);
+  }, [lineColor, waveSpeedX, waveSpeedY, waveAmpX, waveAmpY, friction, tension, maxCursorMove, xGap, yGap, overscanX]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -283,9 +290,9 @@ const Waves: React.FC<WavesProps> = ({
     function setLines() {
       const { width, height } = boundingRef.current;
       linesRef.current = [];
-      const oWidth = width + 200,
+      const { xGap, yGap, overscanX } = configRef.current;
+      const oWidth = width + 200 + 2 * overscanX,
         oHeight = height + 30;
-      const { xGap, yGap } = configRef.current;
       const totalLines = Math.ceil(oWidth / xGap);
       const totalPoints = Math.ceil(oHeight / yGap);
       const xStart = (width - xGap * totalLines) / 2;
