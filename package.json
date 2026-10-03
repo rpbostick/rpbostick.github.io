@@ -5,11 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/check-dist.ts",
     "lint": "oxlint",
     "check:palette": "node scripts/check-palette.ts",
     "check:color-drive": "node scripts/check-color-drive.ts",
     "check:hero-controls": "node scripts/check-hero-controls.ts",
+    "check:momentum": "node scripts/check-momentum.ts",
+    "check:ripple-field": "node scripts/check-ripple-field.ts",
+    "check:sphere-spin": "node scripts/check-sphere-spin.ts",
+    "check:cloth-follow": "node scripts/check-cloth-follow.ts",
     "check:backdrops": "node scripts/check-backdrops.ts",
     "test:unit": "node --test scripts/*.test.ts",
     "preview": "vite preview"

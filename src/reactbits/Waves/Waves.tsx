@@ -2,90 +2,7 @@
 
 import React, { useRef, useEffect, type CSSProperties } from 'react';
 import './Waves.css';
-
-class Grad {
-  x: number;
-  y: number;
-  z: number;
-  constructor(x: number, y: number, z: number) {
-    this.x = x;
-    this.y = y;
-    this.z = z;
-  }
-  dot2(x: number, y: number): number {
-    return this.x * x + this.y * y;
-  }
-}
-
-class Noise {
-  grad3: Grad[];
-  p: number[];
-  perm: number[];
-  gradP: Grad[];
-
-  constructor(seed = 0) {
-    this.grad3 = [
-      new Grad(1, 1, 0),
-      new Grad(-1, 1, 0),
-      new Grad(1, -1, 0),
-      new Grad(-1, -1, 0),
-      new Grad(1, 0, 1),
-      new Grad(-1, 0, 1),
-      new Grad(1, 0, -1),
-      new Grad(-1, 0, -1),
-      new Grad(0, 1, 1),
-      new Grad(0, -1, 1),
-      new Grad(0, 1, -1),
-      new Grad(0, -1, -1)
-    ];
-    this.p = [
-      151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240,
-      21, 10, 23, 190, 6, 148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33, 88,
-      237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166, 77, 146, 158, 231, 83,
-      111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41, 55, 46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216,
-      80, 73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116, 188, 159, 86, 164, 100, 109, 198, 173, 186,
-      3, 64, 52, 217, 226, 250, 124, 123, 5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207, 206, 59, 227, 47, 16, 58,
-      17, 182, 189, 28, 42, 223, 183, 170, 213, 119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101, 155, 167, 43, 172, 9,
-      129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232, 178, 185, 112, 104, 218, 246, 97, 228, 251, 34, 242, 193,
-      238, 210, 144, 12, 191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107, 49, 192, 214, 31, 181, 199, 106, 157,
-      184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254, 138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128,
-      195, 78, 66, 215, 61, 156, 180
-    ];
-    this.perm = new Array(512);
-    this.gradP = new Array(512);
-    this.seed(seed);
-  }
-  seed(seed: number) {
-    if (seed > 0 && seed < 1) seed *= 65536;
-    seed = Math.floor(seed);
-    if (seed < 256) seed |= seed << 8;
-    for (let i = 0; i < 256; i++) {
-      let v = i & 1 ? this.p[i] ^ (seed & 255) : this.p[i] ^ ((seed >> 8) & 255);
-      this.perm[i] = this.perm[i + 256] = v;
-      this.gradP[i] = this.gradP[i + 256] = this.grad3[v % 12];
-    }
-  }
-  fade(t: number): number {
-    return t * t * t * (t * (t * 6 - 15) + 10);
-  }
-  lerp(a: number, b: number, t: number): number {
-    return (1 - t) * a + t * b;
-  }
-  perlin2(x: number, y: number): number {
-    let X = Math.floor(x),
-      Y = Math.floor(y);
-    x -= X;
-    y -= Y;
-    X &= 255;
-    Y &= 255;
-    const n00 = this.gradP[X + this.perm[Y]].dot2(x, y);
-    const n01 = this.gradP[X + this.perm[Y + 1]].dot2(x, y - 1);
-    const n10 = this.gradP[X + 1 + this.perm[Y]].dot2(x - 1, y);
-    const n11 = this.gradP[X + 1 + this.perm[Y + 1]].dot2(x - 1, y - 1);
-    const u = this.fade(x);
-    return this.lerp(this.lerp(n00, n10, u), this.lerp(n01, n11, u), this.fade(y));
-  }
-}
+import { MAX_NOISE_PERIOD, Noise, NOISE_SCALE, noisePeriod } from './noise.ts';
 
 interface Point {
   x: number;
@@ -107,6 +24,11 @@ interface Mouse {
   set: boolean;
 }
 
+interface Displacement {
+  x: ArrayLike<number>;
+  y: ArrayLike<number>;
+}
+
 // A getter is called once per frame, so the color can change without re-rendering.
 type LineColor = string | (() => string);
 
@@ -121,6 +43,8 @@ interface Config {
   maxCursorMove: number;
   xGap: number;
   yGap: number;
+  overscanX: number;
+  overscanY: number;
 }
 
 type Motion = Pick<
@@ -137,6 +61,19 @@ interface WavesProps {
   // returns the pointer in client coordinates, or null when there is none to
   // follow, which settles the ripples as when the pointer leaves.
   pointer?: () => { x: number; y: number } | null;
+  // Called once per frame after the points move, with the grid (each line's
+  // points, in container coordinates, with this frame's wave offset) and the
+  // frame time. It returns an extra offset for every point, indexed
+  // line × points per line + point, or null for none.
+  displacement?: (lines: readonly (readonly Point[])[], time: number) => Displacement | null;
+  // Called once per frame before the noise is read, with the grid and the
+  // frame time. It returns, for every point (indexed as for displacement),
+  // where in the pattern the point reads the noise, in pixels, instead of
+  // its own place; or null for its own place.
+  sample?: (lines: readonly (readonly Point[])[], time: number) => Displacement | null;
+  // The pattern repeats every this many pixels across and down; each must be
+  // a whole number of noise cells (1 / 0.002 px across, 1 / 0.0015 px down).
+  patternPeriod?: { x: number; y: number };
   backgroundColor?: string;
   waveSpeedX?: number;
   waveSpeedY?: number;
@@ -144,6 +81,11 @@ interface WavesProps {
   waveAmpY?: number;
   xGap?: number;
   yGap?: number;
+  // Extra lines this many pixels beyond each side, for a displacement that
+  // shifts the lines sideways further than the 100 px the grid already has.
+  overscanX?: number;
+  // Likewise above and below, beyond the 15 px the grid already has.
+  overscanY?: number;
   friction?: number;
   tension?: number;
   maxCursorMove?: number;
@@ -162,11 +104,16 @@ const Waves: React.FC<WavesProps> = ({
   waveAmpY = 16,
   xGap = 10,
   yGap = 32,
+  overscanX = 0,
+  overscanY = 0,
   friction = 0.925,
   tension = 0.005,
   maxCursorMove = 100,
   motion,
   pointer,
+  displacement,
+  sample,
+  patternPeriod,
   paused = false,
   style = {},
   className = ''
@@ -209,10 +156,17 @@ const Waves: React.FC<WavesProps> = ({
     tension,
     maxCursorMove,
     xGap,
-    yGap
+    yGap,
+    overscanX,
+    overscanY
   });
   const motionRef = useRef(motion);
   const pointerRef = useRef(pointer);
+  const displacementRef = useRef(displacement);
+  const sampleRef = useRef(sample);
+  const periodX = patternPeriod ? noisePeriod(patternPeriod.x, NOISE_SCALE.x) : MAX_NOISE_PERIOD;
+  const periodY = patternPeriod ? noisePeriod(patternPeriod.y, NOISE_SCALE.y) : MAX_NOISE_PERIOD;
+  const periodRef = useRef({ x: periodX, y: periodY });
   const frameIdRef = useRef<number | null>(null);
   const pausedRef = useRef(paused);
   const requestFrameRef = useRef<(() => void) | null>(null);
@@ -224,6 +178,18 @@ const Waves: React.FC<WavesProps> = ({
   useEffect(() => {
     pointerRef.current = pointer;
   }, [pointer]);
+
+  useEffect(() => {
+    displacementRef.current = displacement;
+  }, [displacement]);
+
+  useEffect(() => {
+    sampleRef.current = sample;
+  }, [sample]);
+
+  useEffect(() => {
+    periodRef.current = { x: periodX, y: periodY };
+  }, [periodX, periodY]);
 
   useEffect(() => {
     pausedRef.current = paused;
@@ -241,9 +207,11 @@ const Waves: React.FC<WavesProps> = ({
       tension,
       maxCursorMove,
       xGap,
-      yGap
+      yGap,
+      overscanX,
+      overscanY
     };
-  }, [lineColor, waveSpeedX, waveSpeedY, waveAmpX, waveAmpY, friction, tension, maxCursorMove, xGap, yGap]);
+  }, [lineColor, waveSpeedX, waveSpeedY, waveAmpX, waveAmpY, friction, tension, maxCursorMove, xGap, yGap, overscanX, overscanY]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -267,9 +235,9 @@ const Waves: React.FC<WavesProps> = ({
     function setLines() {
       const { width, height } = boundingRef.current;
       linesRef.current = [];
-      const oWidth = width + 200,
-        oHeight = height + 30;
-      const { xGap, yGap } = configRef.current;
+      const { xGap, yGap, overscanX, overscanY } = configRef.current;
+      const oWidth = width + 200 + 2 * overscanX,
+        oHeight = height + 30 + 2 * overscanY;
       const totalLines = Math.ceil(oWidth / xGap);
       const totalPoints = Math.ceil(oHeight / yGap);
       const xStart = (width - xGap * totalLines) / 2;
@@ -294,6 +262,8 @@ const Waves: React.FC<WavesProps> = ({
     const phase = { x: 0, y: 0, last: null as number | null };
     // A longer gap (a paused, off-screen loop) counts as this long.
     const MAX_FRAME_MS = 100;
+    // This frame's extra offsets from the displacement getter.
+    let shift: Displacement | null = null;
 
     function movePoints(time: number) {
       const lines = linesRef.current;
@@ -307,9 +277,19 @@ const Waves: React.FC<WavesProps> = ({
       phase.last = time;
       phase.x += frameMs * waveSpeedX;
       phase.y += frameMs * waveSpeedY;
-      lines.forEach(pts => {
-        pts.forEach(p => {
-          const move = noise.perlin2((p.x + phase.x) * 0.002, (p.y + phase.y) * 0.0015) * 12;
+      const at = sampleRef.current ? sampleRef.current(lines, time) : null;
+      const count = lines.length * (lines.length > 0 ? lines[0].length : 0);
+      if (at && (at.x.length !== count || at.y.length !== count)) {
+        throw new Error(`Waves: ${at.x.length} sample points for ${count} grid points`);
+      }
+      const period = periodRef.current;
+      lines.forEach((pts, line) => {
+        pts.forEach((p, idx) => {
+          const k = line * pts.length + idx;
+          const sx = at ? at.x[k] : p.x,
+            sy = at ? at.y[k] : p.y;
+          const move =
+            noise.perlin2((sx + phase.x) * NOISE_SCALE.x, (sy + phase.y) * NOISE_SCALE.y, period.x, period.y) * 12;
           p.wave.x = Math.cos(move) * waveAmpX;
           p.wave.y = Math.sin(move) * waveAmpY;
 
@@ -334,11 +314,14 @@ const Waves: React.FC<WavesProps> = ({
           p.cursor.y = Math.min(maxCursorMove, Math.max(-maxCursorMove, p.cursor.y));
         });
       });
+      shift = displacementRef.current ? displacementRef.current(lines, time) : null;
     }
 
-    function moved(point: Point, withCursor = true): { x: number; y: number } {
-      const x = point.x + point.wave.x + (withCursor ? point.cursor.x : 0);
-      const y = point.y + point.wave.y + (withCursor ? point.cursor.y : 0);
+    function moved(point: Point, withCursor = true, index = -1): { x: number; y: number } {
+      const shiftX = withCursor && shift && index >= 0 ? shift.x[index] : 0;
+      const shiftY = withCursor && shift && index >= 0 ? shift.y[index] : 0;
+      const x = point.x + point.wave.x + (withCursor ? point.cursor.x : 0) + shiftX;
+      const y = point.y + point.wave.y + (withCursor ? point.cursor.y : 0) + shiftY;
       return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
     }
 
@@ -350,12 +333,12 @@ const Waves: React.FC<WavesProps> = ({
       ctx.beginPath();
       const { lineColor } = configRef.current;
       ctx.strokeStyle = typeof lineColor === 'function' ? lineColor() : lineColor;
-      linesRef.current.forEach(points => {
+      linesRef.current.forEach((points, line) => {
         let p1 = moved(points[0], false);
         ctx.moveTo(p1.x, p1.y);
         points.forEach((p, idx) => {
           const isLast = idx === points.length - 1;
-          p1 = moved(p, !isLast);
+          p1 = moved(p, !isLast, line * points.length + idx);
           const p2 = moved(points[idx + 1] || points[points.length - 1], !isLast);
           ctx.lineTo(p1.x, p1.y);
           if (isLast) ctx.moveTo(p2.x, p2.y);

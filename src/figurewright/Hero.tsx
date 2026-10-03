@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react'
 import Waves from '../reactbits/Waves/Waves.tsx'
+import { ClothFollow, FOLLOW } from '../shared/clothFollow.ts'
 import { useAnimations } from '../shared/motion.ts'
+import { RIPPLE, RippleField, rippleRadius, type GridPoint } from '../shared/rippleField.ts'
+import { SphereSpin, SPIN } from '../shared/sphereSpin.ts'
 import { useTheme } from '../shared/theme.ts'
 import { useMediaQuery } from '../shared/useMediaQuery.ts'
 import { usePageVisible } from '../shared/usePageVisible.ts'
 import { ColorDrive, wheelTicks } from './colorDrive.ts'
 import { activeAfterPress, clickActivates, isDrag, MIDDLE_BUTTON, onContent, startsDrag, WavesPointer } from './heroInput.ts'
 import { colorAt, heroBackgrounds, nearestStopIndex, stopsByTheme } from './palette.ts'
-import { dominantAxis, dragDelta, motionAt, PatternDrive, patternLabel, type Axis } from './patternDrive.ts'
+import { motionAt, PatternDrive, patternLabel } from './patternDrive.ts'
 
 const SPLASH = { src: '/figurewright/splash-easing.svg', width: 1355, height: 764 }
 
@@ -16,11 +19,21 @@ const SPLASH = { src: '/figurewright/splash-easing.svg', width: 1355, height: 76
 const drive = new ColorDrive()
 const patternDrive = new PatternDrive()
 const wavesPointer = new WavesPointer()
+const rippleField = new RippleField()
+const sphereSpin = new SphereSpin()
+const clothFollow = new ClothFollow()
 
-// Called by Waves once per frame.
-function wavesPointerNow() {
-  return wavesPointer.current
-}
+// The pattern repeats once per turn of the ball, so a turn closes seamlessly.
+const PATTERN_PERIOD = { x: SPIN.PERIOD_PX, y: SPIN.PERIOD_PX }
+// The furthest the ripple field and the sheet together move a point; Waves
+// draws that much more grid beyond each edge, so a moved line's end never
+// comes into view.
+const DISPLACEMENT_REACH_PX = RIPPLE.MAX_RADIUS_PX * RIPPLE.MAX_DISPLACEMENT_SHARE + FOLLOW.MAX_SHIFT_PX
+
+// Deliberate: Waves' own cursor push stays off. The ripple field carries the
+// pointer's pull and spreads it; the push would add a second one that does
+// not, and without a pointer getter Waves would follow hovering instead.
+const noWavesPointer = () => null
 
 function onStrip(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest('.hero-strip') !== null
@@ -30,11 +43,8 @@ interface Drag {
   pointerId: number
   startX: number
   startY: number
-  lastX: number
-  lastY: number
-  lastTime: number
-  // Locked when the pointer first passes the drag threshold.
-  axis: Axis | null
+  // Set when the pointer first passes the drag threshold.
+  moved: boolean
 }
 
 export default function Hero() {
@@ -68,7 +78,58 @@ export default function Hero() {
   useEffect(() => {
     drive.reducedMotion = reducedMotion
     patternDrive.reducedMotion = reducedMotion
+    wavesPointer.reducedMotion = reducedMotion
+    sphereSpin.reducedMotion = reducedMotion
+    clothFollow.reducedMotion = reducedMotion
   }, [reducedMotion])
+
+  // Called by Waves once per frame: where each point reads the pattern on the
+  // turning ball. The waves fill the hero, so hero-relative coordinates are
+  // the grid's.
+  const wavesSample = useCallback((lines: readonly (readonly GridPoint[])[]) => {
+    const hero = heroRef.current
+    if (!hero) return null
+    const rect = hero.getBoundingClientRect()
+    // performance.now(), like the drag's events: the frame time can be
+    // earlier than the release.
+    return sphereSpin.sample(lines, rect, performance.now())
+  }, [])
+
+  // Called by Waves once per frame: the dragged or coasting pointer stirs the
+  // ripple field, and the dragged one alone stretches the whole field after
+  // it like a sheet, which glides on after release; Waves draws the sum on
+  // top of the turning pattern. Reduced motion has neither.
+  const wavesDisplacement = useCallback(
+    (lines: readonly (readonly GridPoint[])[], time: number) => {
+      const hero = heroRef.current
+      if (!hero || reducedMotion) {
+        rippleField.reset()
+        clothFollow.reset()
+        return null
+      }
+      const rect = hero.getBoundingClientRect()
+      // performance.now(), like the drag's samples: the frame time can be
+      // earlier than the release.
+      const pointer = wavesPointer.at(performance.now(), { left: 0, top: 0, right: rect.width, bottom: rect.height })
+      const ripple = rippleField.step(lines, {
+        pointer,
+        stroke: wavesPointer.stroke,
+        now: time,
+        radius: rippleRadius(rect.width, rect.height),
+      })
+      // Deliberate: only the held pointer pulls the sheet, not the coast; once
+      // let go, the sheet glides on with its own momentum.
+      clothFollow.step({
+        pointer: wavesPointer.current,
+        stroke: wavesPointer.stroke,
+        now: time,
+        width: rect.width,
+        height: rect.height,
+      })
+      return clothFollow.displace(lines, ripple)
+    },
+    [reducedMotion],
+  )
 
   // Called by Waves once per frame; the tag re-renders only when the nearest
   // stop changes.
@@ -82,8 +143,8 @@ export default function Hero() {
     return colorAt(stopsRef.current, position)
   }, [])
 
-  // Also called by Waves once per frame. Reduced motion keeps the pattern's
-  // shape but not its flow, as before the pattern could change.
+  // Also called by Waves once per frame; the drift and the tag's steps land
+  // here. Reduced motion keeps the pattern's shape but not its flow.
   const waveMotion = useCallback(() => {
     const position = patternDrive.advance(performance.now())
     const label = patternLabel(position)
@@ -99,6 +160,16 @@ export default function Hero() {
     const hero = heroRef.current
     if (!hero) return
     let drag: Drag | null = null
+    const heroElement: HTMLElement = hero
+
+    function heroPoint(event: PointerEvent) {
+      const rect = heroElement.getBoundingClientRect()
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top }
+    }
+    function heroView() {
+      const rect = heroElement.getBoundingClientRect()
+      return { width: rect.width, height: rect.height }
+    }
 
     function onPointerDown(event: PointerEvent) {
       if (event.button === MIDDLE_BUTTON) {
@@ -108,49 +179,37 @@ export default function Hero() {
       draggedRef.current = false
       const fromContent = !(event.target instanceof Element) || onContent(event.target)
       if (!startsDrag(event.button, event.pointerType, activeRef.current, fromContent)) return
+      drag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, moved: false }
+      const point = heroPoint(event)
       const now = performance.now()
-      drag = {
-        pointerId: event.pointerId,
-        startX: event.clientX,
-        startY: event.clientY,
-        lastX: event.clientX,
-        lastY: event.clientY,
-        lastTime: now,
-        axis: null,
-      }
-      patternDrive.grab(now)
-      wavesPointer.grab(event.clientX, event.clientY)
+      wavesPointer.grab(point.x, point.y, now)
+      sphereSpin.grab(point, heroView(), now)
       setDragging(true)
     }
     function onPointerMove(event: PointerEvent) {
       if (!drag || event.pointerId !== drag.pointerId) return
-      wavesPointer.move(event.clientX, event.clientY)
-      if (drag.axis === null) {
-        const fromStartX = event.clientX - drag.startX
-        const fromStartY = event.clientY - drag.startY
-        if (!isDrag(fromStartX, fromStartY)) return
-        drag.axis = dominantAxis(fromStartX, fromStartY)
-        draggedRef.current = true
-        // Captured only once it is a drag, so a plain click keeps its target.
-        hero?.setPointerCapture(event.pointerId)
-        window.getSelection()?.removeAllRanges()
-      }
-      // The travel up to the threshold counts too (last = start until now).
+      const point = heroPoint(event)
       const now = performance.now()
-      const dtMs = now - drag.lastTime
-      patternDrive.drag(
-        dragDelta(event.clientX - drag.lastX, event.clientY - drag.lastY, drag.axis, dtMs),
-        dtMs,
-        now,
-      )
-      drag.lastX = event.clientX
-      drag.lastY = event.clientY
-      drag.lastTime = now
+      wavesPointer.move(point.x, point.y, now)
+      sphereSpin.drag(point, heroView(), now)
+      if (drag.moved || !isDrag(event.clientX - drag.startX, event.clientY - drag.startY)) return
+      drag.moved = true
+      draggedRef.current = true
+      // Captured only once it is a drag, so a plain click keeps its target.
+      hero?.setPointerCapture(event.pointerId)
+      window.getSelection()?.removeAllRanges()
     }
     function onPointerEnd(event: PointerEvent) {
       if (!drag || event.pointerId !== drag.pointerId) return
-      if (drag.axis !== null) patternDrive.release(performance.now())
-      wavesPointer.release()
+      const now = performance.now()
+      // A cancelled pointer (the browser took over the gesture) was not flung.
+      if (event.type === 'pointercancel') {
+        wavesPointer.cancel()
+        sphereSpin.cancel()
+      } else {
+        wavesPointer.release(now)
+        sphereSpin.release(now)
+      }
       drag = null
       setDragging(false)
     }
@@ -246,8 +305,8 @@ export default function Hero() {
   const stop = stops[stopIndex]
   const hint = active
     ? coarsePointer
-      ? 'Drag to reshape the waves · tap outside to leave'
-      : 'Scroll to shift colors · drag to reshape the waves · middle-click or Esc to leave'
+      ? 'Drag to stir the waves · tap outside to leave'
+      : 'Scroll to shift colors · drag to stir the waves · middle-click or Esc to leave'
     : coarsePointer
       ? 'Tap to play with the colors'
       : 'Click or middle-click to play with the colors'
@@ -271,14 +330,19 @@ export default function Hero() {
       <Waves
         lineColor={lineColor}
         motion={waveMotion}
-        pointer={wavesPointerNow}
+        pointer={noWavesPointer}
+        displacement={wavesDisplacement}
+        sample={wavesSample}
+        patternPeriod={PATTERN_PERIOD}
         backgroundColor={heroBackgrounds[theme]}
         // With animations off the waves hold still, except while someone is
-        // playing with the hero: stepped colors and dragged patterns land
-        // instantly then, but the frames still have to be drawn.
+        // playing with the hero: stepped colors land instantly then, but the
+        // frames still have to be drawn.
         paused={!pageVisible || (reducedMotion && !active)}
         xGap={12}
         yGap={36}
+        overscanX={DISPLACEMENT_REACH_PX}
+        overscanY={DISPLACEMENT_REACH_PX}
       />
       <div className="hero-content">
         <div className="hero-text">
@@ -304,12 +368,35 @@ export default function Hero() {
           <span className="color-swatch" style={{ background: stop.hex }} aria-hidden="true" />
           {stop.label} · {stop.name}
         </p>
-        <p className="hero-tag pattern-tag">
-          <span className="pattern-icon" aria-hidden="true">
-            ≈
-          </span>
-          {pattern}
-        </p>
+        <div className="pattern-tags" role="group" aria-label="Wave pattern">
+          <button
+            type="button"
+            className="hero-tag pattern-arrow"
+            aria-label="Previous wave pattern"
+            onClick={() => patternDrive.step(-1, performance.now())}
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            className="hero-tag pattern-tag"
+            aria-label={`Wave pattern: ${pattern}. Next pattern`}
+            onClick={() => patternDrive.step(1, performance.now())}
+          >
+            <span className="pattern-icon" aria-hidden="true">
+              ≈
+            </span>
+            {pattern}
+          </button>
+          <button
+            type="button"
+            className="hero-tag pattern-arrow"
+            aria-label="Next wave pattern"
+            onClick={() => patternDrive.step(1, performance.now())}
+          >
+            ›
+          </button>
+        </div>
       </div>
       <p id="hero-hint" className="hero-hint">
         {hint}
