@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "commit": "4d6a46d3f401736695c495f1e72ed429e0ed1b93",
+  "profile": "site",
+  "components": {
+    "Aurora": {
+      "transforms": [
+        "01-params-getter",
+        "02-accumulated-clock",
+        "03-paused-prop"
+      ]
+    },
+    "Iridescence": {
+      "transforms": [
+        "01-accumulated-clock",
+        "02-paused-prop"
+      ]
+    },
+    "Waves": {
+      "transforms": [
+        "01-css-variable-fix",
+        "02-line-color-getter",
+        "03-intersection-observer",
+        "04-pointer-position-fix",
+        "05-motion-getter",
+        "06-accumulated-clock",
+        "07-paused-prop",
+        "08-pointer-getter",
+        "09-displacement-getter",
+        "10-overscan",
+        "13-noise-module",
+        "14-sample-getter"
+      ]
+    }
+  }
+}

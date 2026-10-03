@@ -1,10 +1,18 @@
-From React Bits (https://github.com/DavidHDev/react-bits, https://reactbits.dev): `Waves/`, `Aurora/` and `Iridescence/`, each a `.tsx` and a `.css` from `src/ts-default/Backgrounds/<Name>/`. Aurora and Iridescence draw with [ogl](https://github.com/oframe/ogl) (Unlicense).
+# Aurora: changes from React Bits
 
-These files are generated, not edited by hand: [reactbits-kit](https://github.com/rpbostick/reactbits-kit) (MIT, contains no React Bits code) downloads them at the commit pinned in `reactbits-kit.json` and applies the changes of its `site` profile. Each component's `CHANGES.md` lists those changes: [Waves](Waves/CHANGES.md), [Aurora](Aurora/CHANGES.md), [Iridescence](Iridescence/CHANGES.md). `npx rbx check --to src/reactbits`, part of `npm run lint`, fails on any difference from what the kit generates.
+`Aurora.tsx` and `Aurora.css` are React Bits' `src/ts-default/Backgrounds/Aurora/` (https://github.com/DavidHDev/react-bits) at commit `4d6a46d3f401736695c495f1e72ed429e0ed1b93`, with the changes below (profile `site`) applied by reactbits-kit 0.3.0. `rbx update` re-applies them; `rbx check` reports any edit since.
+
+`Aurora.css` is unchanged.
+
+## Changes
+
+1. **01-params-getter** (`Aurora.tsx`): A `params` prop, a getter called once per frame whose `colorStops`, `amplitude`, `blend` and `speed` override the matching props, so the aurora can change continuously without re-rendering.
+2. **02-accumulated-clock** (`Aurora.tsx`): Without a `time` prop, the shader's clock is accumulated each frame (frame time × speed, with a frame counted as at most 100 ms) instead of computed as `t * 0.01 * speed * 0.1`, so a speed change or a pause does not jump the aurora elsewhere. The rate is the same.
+3. **03-paused-prop** (`Aurora.tsx`): A `paused` prop, as in Waves 07-paused-prop: the loop draws one more frame and stops; every re-render and every resize draws one frame.
 
 ## License
 
-The license text below is React Bits' `LICENSE.md`, verbatim.
+React Bits' `LICENSE.md` at that commit, verbatim:
 
 ---
 

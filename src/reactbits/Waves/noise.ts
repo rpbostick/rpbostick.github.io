@@ -1,5 +1,5 @@
-// Waves' Perlin noise, moved out of Waves.tsx so a check script can run it.
-// perlin2 takes a lattice period, so the pattern can wrap seamlessly.
+// Waves' Perlin noise, moved out of Waves.tsx so it can be imported on
+// its own. perlin2 takes a lattice period, so the pattern can wrap seamlessly.
 
 // Waves reads the noise at a point's pixel position times these.
 export const NOISE_SCALE = { x: 0.002, y: 0.0015 };
