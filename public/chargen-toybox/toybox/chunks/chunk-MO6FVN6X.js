@@ -1,0 +1,1 @@
+function g(t,n,i){let o=Math.min(t.width/n,t.height/i),l=(t.width-n*o)/2,p=(t.height-i*o)/2;return{scale:o,toWorld:(h,e)=>({x:(h-l)/o,y:(e-p)/o}),apply(h){h.setTransform(t.ratio*o,0,0,t.ratio*o,t.ratio*l,t.ratio*p)}}}function m(t,n){let{g:i}=t;i.setTransform(t.ratio,0,0,t.ratio,0,0),i.fillStyle=n,i.fillRect(0,0,t.width,t.height)}export{g as a,m as b};
