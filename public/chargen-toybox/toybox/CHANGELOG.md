@@ -4,6 +4,56 @@ Versions follow [semantic versioning](https://semver.org/): a change to an eleme
 attributes, the toy interface or the files in `dist/` that breaks a page using them is a new
 major version (a new minor version while the version starts with 0).
 
+## 0.6.1 (2026-10-03)
+
+The twisty cube can be turned, and says how.
+
+- Click a sticker to turn its face (cubing.js's own move-press input: counter-clockwise on a
+  click, clockwise on a right-click, the middle slice with Shift, the whole cube with Ctrl);
+  dragging still turns the view. The cube is drawn with cubing.js's PG3D view, which that
+  input needs.
+- ⟳ and ⟲ buttons for U, D, L, R, F, B under the cube, and x, y, z, M, E, S under "More", each
+  naming its face on hover. Keys while the cube's frame has the focus: a letter turns
+  clockwise, Shift+letter counter-clockwise, Ctrl/Cmd+Z undoes.
+- Undo, a move counter, a timer (on by default, can be turned off, remembered) from the first
+  turn after a scramble to the solve, and a "Solved!" note when a scrambled cube is solved.
+- A "?" panel explains turning, the notation and the view, with a diagram of the six faces;
+  it opens by itself the first time the cube is opened in a browser.
+- `postMessage`: the page also takes `{ type: 'move', move: "R'" }` and `{ type: 'undo' }`,
+  and posts `{ type: 'solved', moves, ms }` to the embedding page.
+- `dist/twisty/source.zip` carries the page's new files (`page.js`, `notation.js`,
+  `session.js`); a test checks the zip names every file of each framed page.
+
+## 0.6.0 (2026-10-03)
+
+The floating toy drawer is a window, and toys open in windows of their own, several at once.
+
+- `<toy-drawer panel="floating">`: the drawer itself is a window at the lower left, dragged by
+  its title bar, resized from its corner, minimized to its bar and restored, and closed to a
+  "Toys" launcher where the element is. Opening a toy opens it in a window of its own (its
+  name, Pause, Reset, minimize, close) beside the drawer, each new one 32 px further on, so
+  several toys can be open side by side. A toy has one window at a time: opening it again
+  brings that window to the front, as does a press anywhere in a window. The drawer window and
+  each toy window (which are open, where, how big, minimized) are remembered per browser and
+  page. Every window is kept on screen.
+- Performance: an open toy runs while its window is on screen and not minimized; a page-wide
+  cap, the new attribute `max-running` (default 4; the smallest among a page's floating
+  drawers applies), pauses the toys used least recently beyond it, each with a "Paused, click
+  to resume" overlay. The framed toys (music box, twisty cube) run in their frames inside
+  their windows as before.
+- Keyboard and screen readers: each window is a labelled, non-modal dialog with a focusable
+  title bar; the arrow keys move a window while its title bar has focus (Shift for 50 px
+  steps), and Escape closes the window it is pressed in.
+- Script: `drawer.windows` lists the open toy windows (`{ id, running, pausedByUser,
+  minimized, capped }`, focused last first); `drawer.close(id)` closes one, `drawer.close()`
+  all; `drawer.state` is the window focused last. New parts: `window`, `window-bar`,
+  `launcher`, `toy-window`, `resize-handle`.
+- Pause and Play follow the user's choice: Play on a toy held paused (hidden tab, off screen,
+  minimized, over the cap) starts it once the hold ends, not before.
+- The dice tray's window code is now the shared window module (`src/elements/window.js`) the
+  drawer's windows use too; the tray behaves as before.
+- `panel="inline"` (the default) is unchanged: one toy at a time in the panel under the cards.
+
 ## 0.5.0 (2026-10-03)
 
 The backgrounds coast, ripple, glide and spin under a drag; `dist/` is a build product.
