@@ -32,6 +32,9 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      # Deliberate: no --ignore-scripts. reactbits-kit is a git dependency whose
+      # prepare script compiles its dist/ (allowed in package.json allowScripts);
+      # without it the kit's modules and rbx are missing.
       - name: Install dependencies
         run: npm ci
       - name: Build

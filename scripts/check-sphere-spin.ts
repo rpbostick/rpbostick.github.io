@@ -6,11 +6,11 @@
 // noise, a press catches a spin where it is, reduced motion neither turns nor
 // spins, and with the cloth follow on top the two stay bounded and settle.
 // Run: node scripts/check-sphere-spin.ts
+import { ClothFollow, FOLLOW } from '@rpbostick/reactbits-kit/modules/clothFollow'
+import type { Point } from '@rpbostick/reactbits-kit/modules/momentum'
+import { curved, SPIN, SPIN_SCALE, SphereSpin, spinSeconds, wrap, type View } from '@rpbostick/reactbits-kit/modules/sphereSpin'
 import assert from 'node:assert/strict'
 import { MAX_NOISE_PERIOD, Noise, NOISE_SCALE, noisePeriod } from '../src/reactbits/Waves/noise.ts'
-import { ClothFollow, FOLLOW } from '../src/shared/clothFollow.ts'
-import type { Point } from '../src/shared/momentum.ts'
-import { curved, SPIN, SPIN_SCALE, SphereSpin, spinSeconds, wrap, type View } from '../src/shared/sphereSpin.ts'
 
 const VIEW: View = { width: 1280, height: 800 }
 const CENTER: Point = { x: 640, y: 400 }

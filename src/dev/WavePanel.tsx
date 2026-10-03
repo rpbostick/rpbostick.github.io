@@ -1,3 +1,4 @@
+import { RippleField, rippleRadius, type GridPoint } from '@rpbostick/reactbits-kit/modules/rippleField'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Waves from '../reactbits/Waves/Waves.tsx'
 import { ColorDrive } from '../figurewright/colorDrive.ts'
@@ -5,7 +6,6 @@ import { isDrag, LEFT_BUTTON, WavesPointer } from '../figurewright/heroInput.ts'
 import { colorAt, heroBackgrounds, stopsByTheme } from '../figurewright/palette.ts'
 import { motionAt, patternLabel } from '../figurewright/patternDrive.ts'
 import { useAnimations } from '../shared/motion.ts'
-import { RippleField, rippleRadius, type GridPoint } from '../shared/rippleField.ts'
 import { useTheme } from '../shared/theme.ts'
 import { usePageVisible } from '../shared/usePageVisible.ts'
 
