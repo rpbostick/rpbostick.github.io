@@ -1,0 +1,27 @@
+{
+  "library": [
+    "@rpbostick/reactbits-kit",
+    "idb-keyval",
+    "matter-js",
+    "perfect-freehand"
+  ],
+  "classic": [
+    "matter-js"
+  ],
+  "classicAll": [
+    "@rpbostick/reactbits-kit",
+    "idb-keyval",
+    "matter-js",
+    "perfect-freehand"
+  ],
+  "twisty": [
+    "cubing",
+    "three"
+  ],
+  "copied": [
+    "@3d-dice/dice-box",
+    "@babylonjs/core",
+    "@babylonjs/loaders",
+    "@babylonjs/materials"
+  ]
+}

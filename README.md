@@ -21,6 +21,7 @@ npm run lint
 | `/chargen2/` | `public/chargen2/index.html` | redirects to `/chargen/`, keeping the link's seed and options |
 | `/chargen-beta/` | `public/chargen-beta/index.html` (the character generator's earlier free-form layout; unlisted) | built in its own repo; copied here unchanged |
 | `/chargen-toybox/` | `public/chargen-toybox/index.html` (the character sheet with animated backgrounds and toys; unlisted) | built in its own repo; copied here unchanged |
+| `/toybox/` | `public/toybox/` (the toybox library's built files and demo page; unlisted; the one-script-tag install loads from here) | built in github.com/rpbostick/toybox; copied here unchanged |
 | `/dice-compare/` | `public/dice-compare/` (the dice roller comparison page; unlisted) | built in its own repo (`bash build.sh`); copied here unchanged |
 
 Shared styles and hooks live in `src/shared/`. A new page needs its own `<name>/index.html`, a `src/<name>/main.tsx`, and an entry in `build.rollupOptions.input` in `vite.config.ts`.
