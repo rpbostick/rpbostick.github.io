@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build && node scripts/check-dist.ts",
-    "lint": "oxlint",
+    "lint": "oxlint && rbx check --to src/reactbits",
     "check:palette": "node scripts/check-palette.ts",
     "check:color-drive": "node scripts/check-color-drive.ts",
     "check:hero-controls": "node scripts/check-hero-controls.ts",
@@ -23,7 +23,11 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
+  "allowScripts": {
+    "@rpbostick/reactbits-kit@0.3.0": true
+  },
   "devDependencies": {
+    "@rpbostick/reactbits-kit": "github:rpbostick/reactbits-kit#v0.3.0",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",

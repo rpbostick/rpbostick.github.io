@@ -3,9 +3,9 @@
 // the drag turns and unwinds, gives the same result at any frame rate, and is
 // carried on by a flung pointer's coast.
 // Run: node scripts/check-ripple-field.ts
+import { RIPPLE, RippleField, rippleRadius, type Displacement, type GridPoint, type Point } from '@rpbostick/reactbits-kit/modules/rippleField'
 import assert from 'node:assert/strict'
 import { WavesPointer } from '../src/figurewright/heroInput.ts'
-import { RIPPLE, RippleField, rippleRadius, type Displacement, type GridPoint, type Point } from '../src/shared/rippleField.ts'
 
 const WIDTH = 1280
 const HEIGHT = 800

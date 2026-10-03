@@ -72,7 +72,7 @@ interface WavesProps {
   // its own place; or null for its own place.
   sample?: (lines: readonly (readonly Point[])[], time: number) => Displacement | null;
   // The pattern repeats every this many pixels across and down; each must be
-  // a whole number of noise cells (1 / 0.002 px across, 1 / 0.0015 px down).
+  // a whole number of noise cells (1 / NOISE_SCALE px across and down).
   patternPeriod?: { x: number; y: number };
   backgroundColor?: string;
   waveSpeedX?: number;
@@ -110,11 +110,11 @@ const Waves: React.FC<WavesProps> = ({
   tension = 0.005,
   maxCursorMove = 100,
   motion,
+  paused = false,
   pointer,
   displacement,
   sample,
   patternPeriod,
-  paused = false,
   style = {},
   className = ''
 }) => {
@@ -160,28 +160,16 @@ const Waves: React.FC<WavesProps> = ({
     overscanX,
     overscanY
   });
+  const frameIdRef = useRef<number | null>(null);
   const motionRef = useRef(motion);
+  const pausedRef = useRef(paused);
+  const requestFrameRef = useRef<(() => void) | null>(null);
   const pointerRef = useRef(pointer);
   const displacementRef = useRef(displacement);
-  const sampleRef = useRef(sample);
   const periodX = patternPeriod ? noisePeriod(patternPeriod.x, NOISE_SCALE.x) : MAX_NOISE_PERIOD;
   const periodY = patternPeriod ? noisePeriod(patternPeriod.y, NOISE_SCALE.y) : MAX_NOISE_PERIOD;
   const periodRef = useRef({ x: periodX, y: periodY });
-  const frameIdRef = useRef<number | null>(null);
-  const pausedRef = useRef(paused);
-  const requestFrameRef = useRef<(() => void) | null>(null);
-
-  useEffect(() => {
-    motionRef.current = motion;
-  }, [motion]);
-
-  useEffect(() => {
-    pointerRef.current = pointer;
-  }, [pointer]);
-
-  useEffect(() => {
-    displacementRef.current = displacement;
-  }, [displacement]);
+  const sampleRef = useRef(sample);
 
   useEffect(() => {
     sampleRef.current = sample;
@@ -192,9 +180,21 @@ const Waves: React.FC<WavesProps> = ({
   }, [periodX, periodY]);
 
   useEffect(() => {
+    displacementRef.current = displacement;
+  }, [displacement]);
+
+  useEffect(() => {
+    pointerRef.current = pointer;
+  }, [pointer]);
+
+  useEffect(() => {
     pausedRef.current = paused;
     requestFrameRef.current?.();
   });
+
+  useEffect(() => {
+    motionRef.current = motion;
+  }, [motion]);
 
   useEffect(() => {
     configRef.current = {
@@ -255,7 +255,6 @@ const Waves: React.FC<WavesProps> = ({
         linesRef.current.push(pts);
       }
     }
-
     // The noise offset is accumulated frame by frame rather than computed as
     // time × speed, so a speed change alters how fast the pattern flows from
     // here on instead of jumping it to a different place in the noise.
@@ -269,10 +268,7 @@ const Waves: React.FC<WavesProps> = ({
       const lines = linesRef.current;
       const mouse = mouseRef.current;
       const noise = noiseRef.current;
-      const { waveSpeedX, waveSpeedY, waveAmpX, waveAmpY, friction, tension, maxCursorMove } = {
-        ...configRef.current,
-        ...motionRef.current?.()
-      };
+      const { waveSpeedX, waveSpeedY, waveAmpX, waveAmpY, friction, tension, maxCursorMove } = { ...configRef.current, ...motionRef.current?.() };
       const frameMs = phase.last === null ? 0 : Math.min(MAX_FRAME_MS, Math.max(0, time - phase.last));
       phase.last = time;
       phase.x += frameMs * waveSpeedX;
@@ -288,8 +284,7 @@ const Waves: React.FC<WavesProps> = ({
           const k = line * pts.length + idx;
           const sx = at ? at.x[k] : p.x,
             sy = at ? at.y[k] : p.y;
-          const move =
-            noise.perlin2((sx + phase.x) * NOISE_SCALE.x, (sy + phase.y) * NOISE_SCALE.y, period.x, period.y) * 12;
+          const move = noise.perlin2((sx + phase.x) * NOISE_SCALE.x, (sy + phase.y) * NOISE_SCALE.y, period.x, period.y) * 12;
           p.wave.x = Math.cos(move) * waveAmpX;
           p.wave.y = Math.sin(move) * waveAmpY;
 
@@ -356,7 +351,7 @@ const Waves: React.FC<WavesProps> = ({
         if (point) updateMouse(point.x, point.y);
         else mouse.set = false;
       }
-      mouse.sx +=(mouse.x - mouse.sx) * 0.1;
+      mouse.sx += (mouse.x - mouse.sx) * 0.1;
       mouse.sy += (mouse.y - mouse.sy) * 0.1;
       const dx = mouse.x - mouse.lx,
         dy = mouse.y - mouse.ly;
@@ -395,9 +390,9 @@ const Waves: React.FC<WavesProps> = ({
       const mouse = mouseRef.current;
       // Read the rect here rather than the one cached on resize: the cached
       // left/top go stale as soon as the page scrolls.
-      const rect = container.getBoundingClientRect();
-      mouse.x = x - rect.left;
-      mouse.y = y - rect.top;
+      const b = container.getBoundingClientRect();
+      mouse.x = x - b.left;
+      mouse.y = y - b.top;
       if (!mouse.set) {
         mouse.sx = mouse.x;
         mouse.sy = mouse.y;
@@ -406,7 +401,6 @@ const Waves: React.FC<WavesProps> = ({
         mouse.set = true;
       }
     }
-
     // Run the loop and pointer listeners only while the waves are on screen.
     let running = false;
     requestFrameRef.current = () => {
@@ -439,7 +433,6 @@ const Waves: React.FC<WavesProps> = ({
     setLines();
     observer.observe(container);
     window.addEventListener('resize', onResize);
-
     return () => {
       requestFrameRef.current = null;
       observer.disconnect();

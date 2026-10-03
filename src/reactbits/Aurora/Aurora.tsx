@@ -205,11 +205,11 @@ export default function Aurora(props: AuroraProps) {
     const mesh = new Mesh(gl, { geometry, program });
     ctn.appendChild(gl.canvas);
 
+    let animateId: number | null = null;
     // Without a `time` prop the clock is accumulated frame by frame (a frame
     // counted as at most 100 ms), so a speed change or a pause does not jump
     // the aurora elsewhere.
     const clock = { value: 0, last: null as number | null };
-    let animateId: number | null = null;
     const update = (t: number) => {
       animateId = propsRef.current.paused ? null : requestAnimationFrame(update);
       const current = { ...propsRef.current, ...propsRef.current.params?.() };
@@ -234,7 +234,6 @@ export default function Aurora(props: AuroraProps) {
       if (animateId === null) animateId = requestAnimationFrame(update);
     };
     requestFrameRef.current();
-
     resize();
 
     return () => {

@@ -2,8 +2,8 @@
 // independent decay, coast time, edge bounces, a press taking over, and
 // reduced motion.
 // Run: node scripts/check-momentum.ts
+import { coastDuration, Momentum, MOMENTUM, releaseVelocity, type Bounds, type Point } from '@rpbostick/reactbits-kit/modules/momentum'
 import assert from 'node:assert/strict'
-import { coastDuration, Momentum, MOMENTUM, releaseVelocity, type Bounds, type Point } from '../src/shared/momentum.ts'
 
 const FRAME_MS = 16
 const WIDE: Bounds = { left: -1e6, top: -1e6, right: 1e6, bottom: 1e6 }

@@ -5,9 +5,9 @@
 // smoothly, the result does not depend on the frame rate, the lines cover the
 // edges, and reduced motion has none.
 // Run: node scripts/check-cloth-follow.ts
+import { ClothFollow, FOLLOW } from '@rpbostick/reactbits-kit/modules/clothFollow'
+import type { Displacement, GridPoint, Point } from '@rpbostick/reactbits-kit/modules/rippleField'
 import assert from 'node:assert/strict'
-import { ClothFollow, FOLLOW } from '../src/shared/clothFollow.ts'
-import type { Displacement, GridPoint, Point } from '../src/shared/rippleField.ts'
 
 const WIDTH = 1280
 const HEIGHT = 800

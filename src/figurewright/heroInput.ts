@@ -1,7 +1,7 @@
 // The hero's pointer rules, as pure functions so a check script can cover
 // them: which press toggles the color mode, where and when a press becomes
 // a drag, which clicks activate, and the pointer the waves follow.
-import { Momentum, type Bounds, type Point } from '../shared/momentum.ts'
+import { Momentum, type Bounds, type Point } from '@rpbostick/reactbits-kit/modules/momentum'
 
 export const LEFT_BUTTON = 0
 export const MIDDLE_BUTTON = 1
